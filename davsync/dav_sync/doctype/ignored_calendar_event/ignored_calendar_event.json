@@ -1,0 +1,53 @@
+{
+ "docstatus": 0,
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "module": "DAV Sync",
+ "custom": 0,
+ "name": "Ignored Calendar Event",
+ "autoname": "hash",
+ "title_field": "title",
+ "description": "Calendar events (whole series) the sync never imports again. Deleting an entry shows the appointments again.",
+ "field_order": [
+  "account",
+  "uid",
+  "title"
+ ],
+ "fields": [
+  {
+   "fieldname": "account",
+   "fieldtype": "Link",
+   "label": "CardDAV Account",
+   "options": "CardDAV Account",
+   "reqd": 1,
+   "in_list_view": 1,
+   "search_index": 1,
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "uid",
+   "fieldtype": "Data",
+   "label": "Calendar UID",
+   "length": 255,
+   "reqd": 1,
+   "in_list_view": 1,
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "label": "Title",
+   "in_list_view": 1
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1
+  }
+ ],
+ "modified": "2026-10-24 12:00:00.000000"
+}

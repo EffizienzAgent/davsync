@@ -1,0 +1,206 @@
+{
+ "docstatus": 0,
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "module": "DAV Sync",
+ "custom": 0,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "name": "CardDAV Account",
+ "autoname": "field:title",
+ "title_field": "title",
+ "field_order": [
+  "title",
+  "server_url",
+  "username",
+  "app_password",
+  "address_book_url",
+  "owner_user",
+  "enabled",
+  "push_enabled",
+  "sync_token",
+  "last_sync",
+  "last_error",
+  "last_result",
+  "calendar_section",
+  "calendar_name",
+  "calendar_url",
+  "calendar_enabled",
+  "calendar_since",
+  "calendar_sync_token",
+  "calendar_fresh",
+  "calendar_url_changed",
+  "calendar_last_sync",
+  "calendar_last_error",
+  "calendar_last_result",
+  "ignored_attendees"
+ ],
+ "fields": [
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "label": "Title",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "server_url",
+   "fieldtype": "Data",
+   "label": "Server URL",
+   "description": "e.g. https://cloud.example.com/remote.php/dav",
+   "options": "URL",
+   "reqd": 1
+  },
+  {
+   "fieldname": "username",
+   "fieldtype": "Data",
+   "label": "Username",
+   "reqd": 1
+  },
+  {
+   "fieldname": "app_password",
+   "fieldtype": "Password",
+   "label": "App Password",
+   "reqd": 1
+  },
+  {
+   "fieldname": "address_book_url",
+   "fieldtype": "Data",
+   "label": "Address Book URL",
+   "options": "URL"
+  },
+  {
+   "fieldname": "owner_user",
+   "fieldtype": "Link",
+   "label": "Owner User",
+   "options": "User",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enabled",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "push_enabled",
+   "fieldtype": "Check",
+   "label": "Push Enabled",
+   "default": "1"
+  },
+  {
+   "fieldname": "sync_token",
+   "fieldtype": "Data",
+   "label": "Sync Token",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_sync",
+   "fieldtype": "Datetime",
+   "label": "Last Sync",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_error",
+   "fieldtype": "Small Text",
+   "label": "Last Error",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_result",
+   "fieldtype": "Small Text",
+   "label": "Last Result",
+   "read_only": 1
+  },
+  {
+   "fieldname": "calendar_section",
+   "fieldtype": "Section Break",
+   "label": "Calendar"
+  },
+  {
+   "fieldname": "calendar_name",
+   "fieldtype": "Data",
+   "label": "Calendar Name",
+   "description": "Display name or last path segment that Find calendar looks for. Empty takes the first calendar."
+  },
+  {
+   "fieldname": "calendar_url",
+   "fieldtype": "Data",
+   "label": "Calendar URL",
+   "options": "URL"
+  },
+  {
+   "fieldname": "calendar_enabled",
+   "fieldtype": "Check",
+   "label": "Calendar Sync Enabled",
+   "default": "0"
+  },
+  {
+   "fieldname": "calendar_since",
+   "fieldtype": "Date",
+   "label": "Import From",
+   "default": "Today"
+  },
+  {
+   "fieldname": "calendar_sync_token",
+   "fieldtype": "Data",
+   "label": "Calendar Sync Token",
+   "read_only": 1
+  },
+  {
+   "fieldname": "calendar_fresh",
+   "fieldtype": "Check",
+   "label": "Calendar Needs Full Listing",
+   "read_only": 1,
+   "hidden": 1
+  },
+  {
+   "fieldname": "calendar_url_changed",
+   "fieldtype": "Check",
+   "label": "Calendar URL Changed",
+   "read_only": 1,
+   "hidden": 1
+  },
+  {
+   "fieldname": "calendar_last_sync",
+   "fieldtype": "Datetime",
+   "label": "Calendar Last Sync",
+   "read_only": 1
+  },
+  {
+   "fieldname": "calendar_last_error",
+   "fieldtype": "Small Text",
+   "label": "Calendar Last Error",
+   "read_only": 1
+  },
+  {
+   "fieldname": "calendar_last_result",
+   "fieldtype": "Small Text",
+   "label": "Calendar Last Result",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ignored_attendees",
+   "fieldtype": "Table",
+   "label": "Ignored Attendees",
+   "options": "Ignored Attendee",
+   "description": "Attendees matching these addresses or patterns are no participants; events with only such attendees are not imported."
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1
+  }
+ ],
+ "modified": "2026-10-24 12:00:00.000000"
+}

@@ -1,0 +1,93 @@
+Archived,Archiviert
+Exclude from address book,Nicht im Adressbuch
+Unparsed Phone Numbers,Nicht erkannte Telefonnummern
+CardDAV,CardDAV
+Synced At,Synchronisiert am
+CardDAV Account,CardDAV-Konto
+CardDAV UID,CardDAV-UID
+CardDAV Href,CardDAV-Href
+CardDAV ETag,CardDAV-ETag
+CardDAV vCard,CardDAV-vCard
+Birthday,Geburtstag
+YYYY-MM-DD or --MM-DD,JJJJ-MM-TT oder --MM-TT
+Name Suffix,Namenszusatz
+Notes,Notizen
+vCard Type,vCard-Typ
+Calendar UID,Kalender-UID
+Calendar Href,Kalender-Pfad
+Calendar ETag,Kalender-ETag
+Ignored Attendee,Ignorierter Teilnehmer
+Pattern,Muster
+"E-mail address or pattern, e.g. newsletter@example.com or *@example.com","E-Mail-Adresse oder Muster, z. B. newsletter@example.com oder *@example.com"
+Title,Titel
+Server URL,Server-URL
+Username,Benutzername
+App Password,App-Passwort
+Address Book URL,Adressbuch-URL
+Owner User,Besitzer
+Enabled,Aktiviert
+Push Enabled,Übertragung aktiv
+Sync Token,Sync-Token
+Last Sync,Letzte Synchronisierung
+Last Error,Letzter Fehler
+Last Result,Letztes Ergebnis
+Calendar,Kalender
+Calendar URL,Kalender-URL
+Calendar Sync Enabled,Kalender-Sync aktiv
+Import From,Import ab
+Calendar Sync Token,Kalender-Sync-Token
+Calendar Needs Full Listing,Kalender vollständig neu einlesen
+Calendar URL Changed,Kalender-URL geändert
+Calendar Last Sync,Letzte Kalender-Synchronisierung
+Calendar Last Error,Letzter Kalender-Fehler
+Calendar Last Result,Letztes Kalender-Ergebnis
+Ignored Attendees,Ignorierte Teilnehmer
+Attendees matching these addresses or patterns are no participants; events with only such attendees are not imported.,"Teilnehmer, die zu diesen Adressen oder Mustern passen, sind keine Teilnehmer; Termine nur mit solchen Teilnehmern werden nicht importiert."
+Calendar events (whole series) the sync never imports again. Deleting an entry shows the appointments again.,"Kalendertermine (ganze Serie), die der Abgleich nie wieder importiert. Wird ein Eintrag gelöscht, werden die Termine wieder eingeblendet."
+Ignored Calendar Event,Ignorierter Kalendertermin
+Calendar Object,Kalenderobjekt
+Failed,Fehlgeschlagen
+{0} is not a valid phone number.,{0} ist keine gültige Telefonnummer.
+Full listing would archive {0} contacts — skipped.,Vollständige Liste würde {0} Kontakte archivieren – übersprungen.
+Check the possible duplicates report.,Bitte den Bericht „Mögliche Dubletten“ prüfen.
+"Created {0}, adopted {1}, updated {2}, sent {3}, archived {4}, organizations {5}, skipped {6}, failed {7}.","{0} erstellt, {1} übernommen, {2} aktualisiert, {3} gesendet, {4} archiviert, {5} Organisationen, {6} übersprungen, {7} fehlgeschlagen."
+{0} vCards could not be synced; see Error Log.,"{0} vCards konnten nicht synchronisiert werden, siehe Fehlerprotokoll."
+Address book could not be found: {0},Adressbuch konnte nicht gefunden werden: {0}
+Address book found: {0},Adressbuch gefunden: {0}
+CardDAV Account {0} not found,CardDAV-Konto {0} nicht gefunden
+"Push is not possible: enable the account and push, and set the address book URL.",Übertragung nicht möglich: Konto und Übertragung aktivieren und Adressbuch-URL eintragen.
+"Created {0}, linked {1}, updated {2}, cancelled {3}, skipped {4}, failed {5}.","Angelegt {0}, verknüpft {1}, aktualisiert {2}, abgesagt {3}, übersprungen {4}, fehlgeschlagen {5}."
+Calendar changed: {0} appointments of the previous calendar were kept.,Kalender gewechselt: {0} Termine des bisherigen Kalenders wurden behalten.
+Full listing would cancel {0} appointments — skipped.,Die vollständige Liste würde {0} Termine absagen – übersprungen.
+{0} calendar objects could not be synced; see Error Log.,"{0} Kalendereinträge konnten nicht synchronisiert werden, siehe Fehlerprotokoll."
+The calendar data is refreshed with the next calendar sync (within 5 minutes).,Die Kalenderdaten werden beim nächsten Kalender-Abgleich aktualisiert (innerhalb von 5 Minuten).
+The calendar sync is disabled; the calendar data is refreshed once it is enabled.,"Der Kalender-Abgleich ist deaktiviert; die Kalenderdaten werden aktualisiert, sobald er aktiviert ist."
+Calendar could not be found: {0},Kalender wurde nicht gefunden: {0}
+Calendar found: {0},Kalender gefunden: {0}
+Appointment,Termin
+{0} is not an e-mail address or a pattern like *@example.com.,{0} ist keine E-Mail-Adresse und kein Muster wie *@example.com.
+The pattern {0} is listed more than once.,Das Muster {0} ist mehrfach eingetragen.
+This calendar event is already ignored.,Dieser Kalendertermin wird bereits ignoriert.
+Find address book,Adressbuch finden
+Find calendar,Kalender suchen
+Sync calendar now,Kalender jetzt synchronisieren
+Start calendar import,Kalender-Erstimport starten
+Sync now,Jetzt synchronisieren
+Start initial import,Erstimport starten
+Started in the background.,Im Hintergrund gestartet.
+DAV Sync Settings,DAV-Sync-Einstellungen
+Default Country,Standardland
+Country of addresses that carry none. Empty uses the system default country.,Land für Adressen ohne Land. Leer: das Standardland des Systems.
+Phone Region,Telefon-Region
+"Two-letter region for phone numbers without a country code, e.g. DE. Empty uses the default country.","Zweistellige Region für Telefonnummern ohne Ländervorwahl, z. B. DE. Leer: das Standardland."
+Own E-mail Addresses,Eigene E-Mail-Adressen
+One address per line. Calendar attendees with these addresses are not participants; the account owner's address is always included.,Eine Adresse pro Zeile. Kalender-Teilnehmer mit diesen Adressen zählen nicht als Teilnehmer; die Adresse des Konto-Inhabers gehört immer dazu.
+e.g. https://cloud.example.com/remote.php/dav,z. B. https://cloud.example.com/remote.php/dav
+Calendar Name,Kalendername
+Display name or last path segment that Find calendar looks for. Empty takes the first calendar.,"Anzeigename oder letzter Pfadteil, den „Kalender suchen“ sucht. Leer: der erste Kalender."
+Sync bookkeeping: last seen etag per calendar object.,Sync-Buchführung: zuletzt gesehenes ETag je Kalenderobjekt.
+"Created {0}, updated {1}, unchanged {2}, failed {3} contacts on the server.","Auf dem Server {0} Kontakte erstellt, {1} aktualisiert, {2} unverändert, {3} fehlgeschlagen."
+Imports the appointments of the calendar since the import date. Nothing is written to the server.,Importiert die Termine des Kalenders ab dem Importdatum. Auf dem Server wird nichts geschrieben.
+Imports all contacts from the address book.,Importiert alle Kontakte aus dem Adressbuch.
+Send all contacts to the address book,Alle Kontakte ans Adressbuch senden
+Sends all contacts of the owner user to the address book. Continue?,Sendet alle Kontakte des Inhabers ans Adressbuch. Fortfahren?
