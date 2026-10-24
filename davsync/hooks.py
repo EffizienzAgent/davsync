@@ -12,9 +12,11 @@ fixtures = [{"dt": "Custom Field", "filters": [["module", "=", "DAV Sync"]]}]
 
 doc_events = {
 	"Contact": {
+		"validate": "davsync.guard.protect_contact",
 		"on_update": "davsync.carddav.push.enqueue_contact_push",
 		"on_trash": "davsync.carddav.push.enqueue_contact_push",
 	},
+	"Event": {"validate": "davsync.guard.protect_caldav"},
 	"Address": {
 		"on_update": "davsync.carddav.push.on_address_update",
 		"on_trash": "davsync.carddav.push.on_address_update",

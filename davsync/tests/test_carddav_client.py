@@ -9,6 +9,7 @@ from davsync.tests.helpers import guard_commit, make_carddav_account
 
 PASSWORD = "app-pw-9f8e7d6c"
 BOOK = "https://cloud.example.test/remote.php/dav/addressbooks/users/alice/contacts/"
+BOOK_PATH = "/remote.php/dav/addressbooks/users/alice/contacts/"
 NS = 'xmlns:d="DAV:" xmlns:card="urn:ietf:params:xml:ns:carddav" xmlns:cs="http://calendarserver.org/ns/"'
 
 
@@ -17,6 +18,12 @@ class FakeResponse:
 		self.content = body.encode()
 		self.status_code = status_code
 		self.headers = headers or {}
+
+	def iter_content(self, size):
+		yield self.content
+
+	def close(self):
+		pass
 
 
 def multistatus(*responses, token=None):
@@ -117,66 +124,68 @@ class TestCardDAVClient(IntegrationTestCase):
 		for status in (403, 409):
 			listing = multistatus(
 				entry(
-					"/c/",
+					BOOK_PATH,
 					"<d:resourcetype><d:collection/><card:addressbook/></d:resourcetype><d:sync-token>fresh</d:sync-token>",
 				),
-				entry("/c/a.vcf", '<d:getetag>"e1"</d:getetag>'),
+				entry(f"{BOOK_PATH}a.vcf", '<d:getetag>"e1"</d:getetag>'),
 			)
 			with self.patched([FakeResponse("", status), listing]) as request:
 				result = self.client.sync("stale")
-			self.assertEqual(result, ([("/c/a.vcf", '"e1"')], [], "fresh", True))
+			self.assertEqual(result, ([(f"{BOOK_PATH}a.vcf", '"e1"')], [], "fresh", True))
 			self.assertEqual(request.call_args.args[1], "PROPFIND")
 			self.assertEqual(request.call_args.kwargs["headers"]["Depth"], "1")
 
 	def test_no_token_lists_everything(self):
-		listing = multistatus(entry("/c/a.vcf", '<d:getetag>"e1"</d:getetag>'))
+		listing = multistatus(entry(f"{BOOK_PATH}a.vcf", '<d:getetag>"e1"</d:getetag>'))
 		with self.patched([listing]) as request:
 			changed, _, token, full = self.client.sync(None)
 		self.assertTrue(full)
-		self.assertEqual(changed, [("/c/a.vcf", '"e1"')])
+		self.assertEqual(changed, [(f"{BOOK_PATH}a.vcf", '"e1"')])
 		self.assertEqual(token, "")
 		self.assertEqual(request.call_args.args[1], "PROPFIND")
 
 	def test_multiget_returns_vcards(self):
 		data = "<card:address-data>BEGIN:VCARD\nFN:A\nEND:VCARD\n</card:address-data>"
-		response = multistatus(entry("/c/a.vcf", f'<d:getetag>"e1"</d:getetag>{data}'), gone("/c/b.vcf"))
+		response = multistatus(
+			entry(f"{BOOK_PATH}a.vcf", f'<d:getetag>"e1"</d:getetag>{data}'), gone(f"{BOOK_PATH}b.vcf")
+		)
 		with self.patched([response]):
-			result = self.client.multiget(["/c/a.vcf", "/c/b.vcf"])
-		self.assertEqual(result, [("/c/a.vcf", '"e1"', "BEGIN:VCARD\nFN:A\nEND:VCARD\n")])
+			result = self.client.multiget([f"{BOOK_PATH}a.vcf", f"{BOOK_PATH}b.vcf"])
+		self.assertEqual(result, [(f"{BOOK_PATH}a.vcf", '"e1"', "BEGIN:VCARD\nFN:A\nEND:VCARD\n")])
 
 	def test_put_sends_if_match_and_returns_etag(self):
 		with self.patched([FakeResponse("", 204, {"ETag": '"e2"'})]) as request:
-			etag = self.client.put("/c/a.vcf", "BEGIN:VCARD\nEND:VCARD\n", '"e1"')
+			etag = self.client.put(f"{BOOK_PATH}a.vcf", "BEGIN:VCARD\nEND:VCARD\n", '"e1"')
 		self.assertEqual(etag, '"e2"')
 		headers = request.call_args.kwargs["headers"]
 		self.assertEqual(headers["If-Match"], '"e1"')
 		self.assertNotIn("If-None-Match", headers)
-		self.assertEqual(request.call_args.args[2], "https://cloud.example.test/c/a.vcf")
+		self.assertEqual(request.call_args.args[2], BOOK + "a.vcf")
 
 	def test_put_without_etag_creates_only(self):
 		with self.patched([FakeResponse("", 201, {"ETag": '"e1"'})]) as request:
-			self.client.put("/c/a.vcf", "x", None)
+			self.client.put(f"{BOOK_PATH}a.vcf", "x", None)
 		self.assertEqual(request.call_args.kwargs["headers"]["If-None-Match"], "*")
 
 	def test_put_without_etag_header_reads_it_back(self):
-		listing = multistatus(entry("/c/a.vcf", '<d:getetag>"e9"</d:getetag>'))
+		listing = multistatus(entry(f"{BOOK_PATH}a.vcf", '<d:getetag>"e9"</d:getetag>'))
 		with self.patched([FakeResponse("", 201), listing]):
-			self.assertEqual(self.client.put("/c/a.vcf", "x", None), '"e9"')
+			self.assertEqual(self.client.put(f"{BOOK_PATH}a.vcf", "x", None), '"e9"')
 
 	def test_put_412_raises_precondition_failed(self):
 		with self.patched([FakeResponse("", 412)]):
 			with self.assertRaises(PreconditionFailed):
-				self.client.put("/c/a.vcf", "x", '"old"')
+				self.client.put(f"{BOOK_PATH}a.vcf", "x", '"old"')
 
 	def test_delete_sends_if_match_and_tolerates_missing(self):
 		with self.patched([FakeResponse("", 204), FakeResponse("", 404)]) as request:
-			self.client.delete("/c/a.vcf", '"e1"')
-			self.client.delete("/c/a.vcf", None)
+			self.client.delete(f"{BOOK_PATH}a.vcf", '"e1"')
+			self.client.delete(f"{BOOK_PATH}a.vcf", '"e2"')
 		self.assertEqual(request.call_args_list[0].kwargs["headers"]["If-Match"], '"e1"')
 
 	def test_retries_server_errors_then_succeeds(self):
 		with self.patched([FakeResponse("", 503), FakeResponse("", 204, {"ETag": '"e"'})]) as request:
-			self.client.put("/c/a.vcf", "x", '"e1"')
+			self.client.put(f"{BOOK_PATH}a.vcf", "x", '"e1"')
 		self.assertEqual(request.call_count, 2)
 		self.sleep.assert_called_once()
 
@@ -184,16 +193,16 @@ class TestCardDAVClient(IntegrationTestCase):
 		boom = requests.ConnectionError("down")
 		with patch.object(requests.Session, "request", autospec=True, side_effect=boom) as request:
 			with self.assertRaises(CardDAVError):
-				self.client.put("/c/a.vcf", "x", '"e1"')
+				self.client.put(f"{BOOK_PATH}a.vcf", "x", '"e1"')
 		self.assertEqual(request.call_count, 1)
 
 	def test_put_not_retried_on_500_but_retried_on_503(self):
 		with self.patched([FakeResponse("", 500)]) as request:
 			with self.assertRaises(CardDAVError):
-				self.client.put("/c/a.vcf", "x", '"e1"')
+				self.client.put(f"{BOOK_PATH}a.vcf", "x", '"e1"')
 		self.assertEqual(request.call_count, 1)
 		with self.patched([FakeResponse("", 503), FakeResponse("", 204, {"ETag": '"e"'})]) as request:
-			self.client.put("/c/a.vcf", "x", '"e1"')
+			self.client.put(f"{BOOK_PATH}a.vcf", "x", '"e1"')
 		self.assertEqual(request.call_count, 2)
 
 	def test_delete_retried_on_connection_error(self):
@@ -206,7 +215,7 @@ class TestCardDAVClient(IntegrationTestCase):
 			return item
 
 		with patch.object(requests.Session, "request", autospec=True, side_effect=respond) as request:
-			self.client.delete("/c/a.vcf", None)
+			self.client.delete(f"{BOOK_PATH}a.vcf", '"e1"')
 		self.assertEqual(request.call_count, 2)
 
 	def test_unconfigured_address_book_raises(self):
@@ -234,7 +243,7 @@ class TestCardDAVClient(IntegrationTestCase):
 
 	def test_auth_and_timeout(self):
 		with self.patched([FakeResponse("", 204, {"ETag": '"e"'})]) as request:
-			self.client.put("/c/a.vcf", "x", '"e1"')
+			self.client.put(f"{BOOK_PATH}a.vcf", "x", '"e1"')
 		self.assertEqual(self.client.session.auth, ("alice", PASSWORD))
 		self.assertEqual(request.call_args.kwargs["timeout"], 30)
 
@@ -242,10 +251,10 @@ class TestCardDAVClient(IntegrationTestCase):
 		boom = requests.ConnectionError(f"https://alice:{PASSWORD}@cloud.example.test failed")
 		with patch.object(requests.Session, "request", autospec=True, side_effect=boom):
 			with self.assertRaises(CardDAVError) as ctx:
-				self.client.delete("/c/a.vcf", '"e"')
+				self.client.delete(f"{BOOK_PATH}a.vcf", '"e"')
 		self.assertNotIn(PASSWORD, str(ctx.exception))
 		self.assertIsNone(ctx.exception.__cause__)
 		with self.patched([FakeResponse(f"echo {PASSWORD}", 500)] * 3):
 			with self.assertRaises(CardDAVError) as ctx:
-				self.client.delete("/c/a.vcf", '"e"')
+				self.client.delete(f"{BOOK_PATH}a.vcf", '"e"')
 		self.assertNotIn(PASSWORD, str(ctx.exception))

@@ -1,12 +1,17 @@
+import posixpath
 from time import sleep
-from urllib.parse import urljoin, urlparse
-from xml.etree import ElementTree as ET
+from urllib.parse import unquote, urljoin, urlparse
+from xml.etree.ElementTree import ParseError
 
 import frappe
 import requests
+from defusedxml import DefusedXmlException
+from defusedxml.ElementTree import fromstring
 from frappe.utils.password import get_decrypted_password
 
 TIMEOUT = 30
+MAX_RESPONSE_BYTES = 20 * 1024 * 1024
+CHUNK_BYTES = 64 * 1024
 RETRY_BACKOFF = 2
 MAX_RETRY_SLEEP = 30
 MAX_ATTEMPTS = 3
@@ -41,6 +46,49 @@ class PreconditionFailed(CardDAVError):
 	pass
 
 
+class UnsafeURL(CardDAVError):
+	pass
+
+
+def origin(url):
+	parsed = urlparse(url)
+	return parsed.scheme.lower(), (parsed.hostname or "").lower(), parsed.port
+
+
+def same_origin(url, base):
+	return origin(url) == origin(base)
+
+
+def clean_path(url):
+	"""The decoded path, or None when it has dot segments or empty parts after decoding."""
+	path = unquote(urlparse(url).path)
+	normal = posixpath.normpath(path)
+	if path.endswith("/"):
+		normal += "/"
+	return normal if normal == path and "//" not in path else None
+
+
+FORBIDDEN_IN_HREF = ("\\", ";", "%25")
+
+
+def member_url(collection, href):
+	"""The absolute URL of href when it names an object inside collection, else UnsafeURL."""
+	if any(part in href.lower() for part in FORBIDDEN_IN_HREF):
+		raise UnsafeURL(f"{href} is outside the collection")
+	url = urljoin(collection, href)
+	base, path = clean_path(collection), clean_path(url)
+	try:
+		inside = bool(base and path) and same_origin(url, collection)
+	except ValueError:
+		inside = False
+	if not inside:
+		raise UnsafeURL(f"{href} is outside the collection")
+	base = base if base.endswith("/") else f"{base}/"
+	if not path.startswith(base) or path.rstrip("/") == base.rstrip("/") or urlparse(url).query:
+		raise UnsafeURL(f"{href} is outside the collection")
+	return url
+
+
 def qname(prefixed):
 	prefix, name = prefixed.split(":")
 	return f"{{{NS[prefix]}}}{name}"
@@ -56,8 +104,8 @@ def escape(text):
 
 def parse_multistatus(response):
 	try:
-		root = ET.fromstring(response.content)
-	except ET.ParseError:
+		root = fromstring(response.content)
+	except ParseError, DefusedXmlException:
 		raise CardDAVError("Server returned invalid XML") from None
 	entries = [parse_response(node) for node in root.findall("d:response", NS)]
 	return entries, root.findtext("d:sync-token", "", NS).strip()
@@ -117,13 +165,22 @@ class CardDAVClient:
 		principal_href = next((prop_href(e, "d:current-user-principal") for e in principal), "")
 		if not principal_href:
 			raise CardDAVError("Server did not report a user principal")
-		principal_url = urljoin(self.server_url, principal_href)
+		principal_url = self.on_server(urljoin(self.server_url, principal_href))
 		home = self.propfind(principal_url, f"<{self.HOME_SET}/>")
 		home_href = next((prop_href(e, self.HOME_SET) for e in home), "")
 		if not home_href:
 			raise CardDAVError("Server did not report a collection home")
-		home_url = urljoin(principal_url, home_href)
+		home_url = self.on_server(urljoin(principal_url, home_href))
 		return home_url, self.propfind(home_url, "<d:displayname/><d:resourcetype/>", depth=1)
+
+	def on_server(self, url):
+		try:
+			same = same_origin(url, self.server_url)
+		except ValueError:
+			same = False
+		if not same:
+			raise UnsafeURL("Server pointed to another host")
+		return url
 
 	def discover_address_book(self) -> str:
 		home_url, entries = self.collections()
@@ -135,7 +192,7 @@ class CardDAVClient:
 			raise CardDAVError("No address book found")
 		named = [b for b in books if prop_text(b, "d:displayname").lower() in PREFERRED_BOOK_NAMES]
 		contacts = [b for b in books if b["href"].rstrip("/").endswith("/contacts")]
-		return urljoin(home_url, (named or contacts or books)[0]["href"])
+		return self.on_server(urljoin(home_url, (named or contacts or books)[0]["href"]))
 
 	def sync(self, token: str | None) -> tuple[list[tuple[str, str]], list[str], str, bool]:
 		self.require_book()
@@ -173,6 +230,7 @@ class CardDAVClient:
 
 	def multiget(self, hrefs: list[str]) -> list[tuple[str, str, str]]:
 		self.require_book()
+		hrefs = [h for h in hrefs if self.is_member(h)]
 		results = []
 		for start in range(0, len(hrefs), MULTIGET_CHUNK):
 			chunk = hrefs[start : start + MULTIGET_CHUNK]
@@ -184,28 +242,43 @@ class CardDAVClient:
 			response = self.request("REPORT", self.collection_url(), headers=XML_HEADERS, data=body)
 			for entry in parse_multistatus(response)[0]:
 				text = entry["props"].get(qname(self.DATA))
-				if text is not None and text.text:
+				if text is not None and text.text and self.is_member(entry["href"]):
 					results.append((entry["href"], prop_text(entry, "d:getetag"), text.text))
 		return results
 
 	def put(self, href: str, text: str, etag: str | None) -> str:
 		self.require_book()
+		url = self.member(href)
 		headers = {"Content-Type": "text/vcard; charset=utf-8"}
 		headers.update({"If-Match": etag} if etag else {"If-None-Match": "*"})
-		response = self.request("PUT", href, headers=headers, data=text.encode(), allow={412})
+		response = self.request("PUT", url, headers=headers, data=text.encode(), allow={412})
 		if response.status_code == 412:
-			raise PreconditionFailed(f"PUT {urlparse(self.absolute(href)).path} precondition failed")
+			raise PreconditionFailed(f"PUT {urlparse(url).path} precondition failed")
 		new_etag = response.headers.get("ETag")
 		if new_etag:
 			return new_etag
-		entries = self.propfind(self.absolute(href), "<d:getetag/>")
+		entries = self.propfind(url, "<d:getetag/>")
 		return next((prop_text(e, "d:getetag") for e in entries), "")
 
-	def delete(self, href: str, etag: str | None) -> None:
+	def delete(self, href: str, etag: str) -> None:
 		self.require_book()
-		response = self.request("DELETE", href, headers={"If-Match": etag} if etag else {}, allow={404, 412})
+		if not etag:
+			raise CardDAVError("Refusing to delete without an ETag")
+		url = self.member(href)
+		response = self.request("DELETE", url, headers={"If-Match": etag}, allow={404, 412})
 		if response.status_code == 412:
-			raise PreconditionFailed(f"DELETE {urlparse(self.absolute(href)).path} precondition failed")
+			raise PreconditionFailed(f"DELETE {urlparse(url).path} precondition failed")
+
+	def member(self, href):
+		return member_url(self.collection_url(), href)
+
+	def is_member(self, href):
+		try:
+			self.member(href)
+		except UnsafeURL:
+			frappe.log_error(title="DAV href outside the collection", message=href[:500])
+			return False
+		return True
 
 	def propfind(self, url, props, depth=0):
 		body = xml_body(f"<d:propfind {NS_DECLARATIONS}><d:prop>{props}</d:prop></d:propfind>")
@@ -223,7 +296,7 @@ class CardDAVClient:
 		return urljoin(self.collection_url() or self.server_url, href)
 
 	def request(self, method, href, allow=(), **kwargs):
-		url = self.absolute(href)
+		url = self.on_server(self.absolute(href))
 		path = urlparse(url).path
 		for attempt in range(1, MAX_ATTEMPTS + 1):
 			response, error = self.send(method, url, path, **kwargs)
@@ -233,13 +306,19 @@ class CardDAVClient:
 			sleep(retry_delay(response, attempt))
 		if error:
 			raise error from None
+		if 300 <= status < 400:
+			raise CardDAVError(f"{method} {path} was redirected; set the final URL instead")
 		if status >= 400 and status not in allow:
 			raise CardDAVError(f"{method} {path} failed with HTTP {status}")
 		return response
 
 	def send(self, method, url, path, **kwargs):
 		try:
-			return self.session.request(method, url, timeout=TIMEOUT, **kwargs), None
+			response = self.session.request(
+				method, url, timeout=TIMEOUT, allow_redirects=False, stream=True, **kwargs
+			)
+			read_capped(response)
+			return response, None
 		except requests.RequestException as exc:
 			return None, CardDAVError(f"{method} {path} failed: {type(exc).__name__}")
 
@@ -250,3 +329,15 @@ class CardDAVClient:
 		if method in RETRY_METHODS:
 			return status is None or status in RETRY_STATUSES
 		return status == 429
+
+
+def read_capped(response):
+	chunks, size = [], 0
+	for chunk in response.iter_content(CHUNK_BYTES):
+		size += len(chunk)
+		if size > MAX_RESPONSE_BYTES:
+			response.close()
+			raise CardDAVError("Server response is too large")
+		chunks.append(chunk)
+	response._content = b"".join(chunks)
+	response._content_consumed = True
