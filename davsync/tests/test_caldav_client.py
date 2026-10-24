@@ -85,10 +85,15 @@ class TestCalDAVClient(IntegrationTestCase):
 		token = multistatus(
 			entry("/remote.php/dav/calendars/alice/business/", "<d:sync-token>tok-9</d:sync-token>")
 		)
-		listing = multistatus(entry("/e/1.ics", '<d:getetag>"e1"</d:getetag>'))
+		listing = multistatus(
+			entry("/remote.php/dav/calendars/alice/business/1.ics", '<d:getetag>"e1"</d:getetag>')
+		)
 		with self.patched([token, listing]) as request:
 			changed, deleted, new_token, full = self.client.sync(None)
-		self.assertEqual((changed, deleted, new_token, full), ([("/e/1.ics", '"e1"')], [], "tok-9", True))
+		self.assertEqual(
+			(changed, deleted, new_token, full),
+			([("/remote.php/dav/calendars/alice/business/1.ics", '"e1"')], [], "tok-9", True),
+		)
 		method, url = request.call_args_list[1].args[1:3]
 		body = request.call_args_list[1].kwargs["data"].decode()
 		self.assertEqual((method, url), ("REPORT", CALENDAR))
@@ -97,28 +102,37 @@ class TestCalDAVClient(IntegrationTestCase):
 
 	def test_sync_collection_with_token(self):
 		response = multistatus(
-			entry("/e/1.ics", '<d:getetag>"e2"</d:getetag>'),
-			"<d:response><d:href>/e/2.ics</d:href><d:status>HTTP/1.1 404 Not Found</d:status></d:response>",
+			entry("/remote.php/dav/calendars/alice/business/1.ics", '<d:getetag>"e2"</d:getetag>'),
+			"<d:response><d:href>/remote.php/dav/calendars/alice/business/2.ics</d:href><d:status>HTTP/1.1 404 Not Found</d:status></d:response>",
 			token="tok-10",
 		)
 		with self.patched([response]):
 			self.assertEqual(
-				self.client.sync("tok-9"), ([("/e/1.ics", '"e2"')], ["/e/2.ics"], "tok-10", False)
+				self.client.sync("tok-9"),
+				(
+					[("/remote.php/dav/calendars/alice/business/1.ics", '"e2"')],
+					["/remote.php/dav/calendars/alice/business/2.ics"],
+					"tok-10",
+					False,
+				),
 			)
 
 	def test_multiget_returns_calendar_data(self):
 		response = multistatus(
 			entry(
-				"/e/1.ics",
+				"/remote.php/dav/calendars/alice/business/1.ics",
 				'<d:getetag>"e1"</d:getetag><cal:calendar-data>BEGIN:VCALENDAR</cal:calendar-data>',
 			)
 		)
 		with self.patched([response]) as request:
-			self.assertEqual(self.client.multiget(["/e/1.ics"]), [("/e/1.ics", '"e1"', "BEGIN:VCALENDAR")])
+			self.assertEqual(
+				self.client.multiget(["/remote.php/dav/calendars/alice/business/1.ics"]),
+				[("/remote.php/dav/calendars/alice/business/1.ics", '"e1"', "BEGIN:VCALENDAR")],
+			)
 		self.assertIn("cal:calendar-multiget", request.call_args.kwargs["data"].decode())
 
 	def test_calendar_is_read_only(self):
 		with self.assertRaises(CardDAVError):
-			self.client.put("/e/1.ics", "x", None)
+			self.client.put("/remote.php/dav/calendars/alice/business/1.ics", "x", None)
 		with self.assertRaises(CardDAVError):
-			self.client.delete("/e/1.ics", None)
+			self.client.delete("/remote.php/dav/calendars/alice/business/1.ics", None)

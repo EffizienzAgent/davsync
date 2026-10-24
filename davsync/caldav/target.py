@@ -5,6 +5,7 @@ from frappe import _
 
 from davsync.caldav.ignores import series_uid
 from davsync.extensions import load
+from davsync.guard import trusted
 
 CALDAV_FIELDS = ("caldav_account", "caldav_uid", "caldav_href", "caldav_etag")
 
@@ -144,6 +145,10 @@ class EventTarget(CalendarTarget):
 		return values, tuple((r.reference_docname, r.email) for r in doc.event_participants)
 
 	def cancel(self, name):
+		with trusted():
+			return self.cancel_event(name)
+
+	def cancel_event(self, name):
 		doc = frappe.get_doc("Event", name)
 		doc.caldav_etag = None
 		cancelled = doc.status != "Cancelled"

@@ -213,6 +213,7 @@ def apply_card(account, href, etag, card, initial, present=None):
 
 	if card.kind == "group":
 		return None, "skipped"
+	vcard.plain_card(card)
 	card.uid = card.uid or href
 	adapter = get_adapter()
 	name = frappe.db.get_value("Contact", {"carddav_account": account, "carddav_uid": card.uid})
@@ -513,6 +514,7 @@ def has_content(fields):
 
 
 def update_address(row, values):
+	values = {k: vcard.no_markup(v) for k, v in values.items()}
 	changed = {k: values[k] for k in UPDATED_ADDRESS_FIELDS if (row.get(k) or None) != (values[k] or None)}
 	if changed:
 		frappe.db.set_value("Address", row.name, changed)

@@ -15,10 +15,15 @@ class TestCalendarAccountActions(IntegrationTestCase):
 		self.addCleanup(frappe.set_user, "Administrator")
 
 	def test_discover_stores_calendar_url(self):
-		with patch.object(CalDAVClient, "discover_calendar", return_value="https://x.test/work/"):
+		with patch.object(
+			CalDAVClient,
+			"discover_calendar",
+			return_value="https://cloud.example.test/remote.php/dav/calendars/alice/work/",
+		):
 			api.discover_calendar(self.account)
 		self.assertEqual(
-			frappe.db.get_value("CardDAV Account", self.account, "calendar_url"), "https://x.test/work/"
+			frappe.db.get_value("CardDAV Account", self.account, "calendar_url"),
+			"https://cloud.example.test/remote.php/dav/calendars/alice/work/",
 		)
 
 	def test_discover_error_is_shown(self):

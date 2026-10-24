@@ -243,6 +243,20 @@ def parse(text):
 	return card
 
 
+def no_markup(value):
+	"""Remote text is plain text: drop angle brackets so it can never become markup."""
+	return value.replace("<", "").replace(">", "") if isinstance(value, str) else value
+
+
+def plain_card(card):
+	for name in ("given", "family", "prefix", "suffix", "fn", "org", "title", "note"):
+		setattr(card, name, no_markup(getattr(card, name)))
+	card.emails = [(no_markup(address), no_markup(label)) for address, label in card.emails]
+	card.phones = [(no_markup(number), no_markup(label)) for number, label in card.phones]
+	card.addresses = [{key: no_markup(value) for key, value in address.items()} for address in card.addresses]
+	return card
+
+
 def is_company(card):
 	if card.kind == "org" or re.search(r"^X-ABSHOWAS:COMPANY\s*$", card.raw, re.M | re.I):
 		return True

@@ -20,6 +20,8 @@ BIRTHDAY = re.compile(r"\d{4}-\d{2}-\d{2}|--\d{2}-\d{2}")
 JOB = "davsync.carddav.push"
 FAILED_BACKOFF_SECONDS = 3600
 NEW_CONTACT_DELAY_MINUTES = 10
+MASS_DELETE_COUNT = 20
+MASS_DELETE_WINDOW_SECONDS = 3600
 UNLINK_FIELDS = ("carddav_account", "carddav_href", "carddav_etag", "carddav_raw", "carddav_uid")
 
 
@@ -122,16 +124,52 @@ def run_delete(contact, account, href, etag) -> None:
 	):
 		return
 	try:
-		delete_card(CardDAVClient(account), href, etag)
+		delete_card(CardDAVClient(account), account, href, etag)
+	except PreconditionFailed:
+		log_conflict(contact, href)
 	except Exception as exc:
 		log_failure(contact, exc)
 
 
-def delete_card(client, href, etag):
-	try:
-		client.delete(href, etag)
-	except PreconditionFailed:
-		client.delete(href, None)
+class MassDeleteBlocked(Exception):
+	pass
+
+
+def delete_card(client, account, href, etag):
+	"""Delete one card; never without If-Match, and never more than MASS_DELETE_COUNT an hour."""
+	allow_delete(account)
+	client.delete(href, etag)
+
+
+def allow_delete(account):
+	key = frappe.cache.make_key(f"carddav-deletes:{account}")
+	count = frappe.cache.incrby(key, 1)
+	if count == 1:
+		frappe.cache.expire(key, MASS_DELETE_WINDOW_SECONDS)
+	if count <= MASS_DELETE_COUNT:
+		return
+	message = frappe._(
+		"Push was switched off: more than {0} cards would be deleted within an hour. Check the archived and"
+		" deleted contacts, then switch push on again."
+	).format(MASS_DELETE_COUNT)
+	if frappe.db.get_value("CardDAV Account", account, "push_enabled"):
+		frappe.db.set_value("CardDAV Account", account, {"push_enabled": 0, "last_error": message})
+		frappe.log_error(
+			title="CardDAV mass delete blocked",
+			message=message,
+			reference_doctype="CardDAV Account",
+			reference_name=account,
+		)
+	raise MassDeleteBlocked(message)
+
+
+def log_conflict(contact, href):
+	frappe.log_error(
+		title=f"CardDAV delete conflict: {contact}",
+		message=f"{href} changed on the server since the last sync and was kept.",
+		reference_doctype="Contact",
+		reference_name=contact,
+	)
 
 
 def account_for(contact):
@@ -200,11 +238,26 @@ def remove_card(doc, account, client, unlink, status):
 	linked = bool(doc.carddav_href or doc.carddav_uid)
 	if not deletable and not (unlink and linked):
 		return "skipped" if not unlink else status
+	if deletable and doc.carddav_account != account:
+		return "skipped"
 	if deletable:
-		delete_card(client or CardDAVClient(account), doc.carddav_href, doc.carddav_etag)
+		client = client or CardDAVClient(account)
+		try:
+			delete_card(client, account, doc.carddav_href, doc.carddav_etag)
+		except PreconditionFailed:
+			return keep_changed_card(doc, client)
 	cleared = dict.fromkeys(UNLINK_FIELDS) if unlink else {"carddav_etag": None}
 	store(doc, {**cleared, "carddav_synced_at": now_datetime()})
 	return status
+
+
+def keep_changed_card(doc, client):
+	"""The card changed on the server after our last sync: keep it and let the next pull bring it in."""
+	log_conflict(doc.name, doc.carddav_href)
+	fetched = client.multiget([doc.carddav_href])
+	etag = fetched[0][1] if fetched else None
+	store(doc, {"carddav_etag": etag, "carddav_synced_at": now_datetime()})
+	return "conflict"
 
 
 def push_pending(account: str) -> None:
@@ -343,7 +396,7 @@ def without_rev(raw):
 
 
 def take_remote_only(doc, remote):
-	store(doc, {"notes": remote.note or None})
+	store(doc, {"notes": vcard.no_markup(remote.note) or None})
 	pull.set_photo(doc, remote, authoritative=True)
 
 

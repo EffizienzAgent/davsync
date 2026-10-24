@@ -13,7 +13,14 @@ servers.
   should never be imported.
 - **Safety nets.** ETag preconditions on every write, a sync token per account, and a guard that
   refuses to archive or cancel more than 20 records and 30 % of an account after a suspicious
-  full listing.
+  full listing. On the push side, more than 20 deletions within an hour switch push off until
+  you switch it on again.
+- **Hardened against hostile input.** The sync bookkeeping fields cannot be set through the API or
+  the desk. Requests only go to the account's server over https, never follow redirects, and only
+  touch objects inside the configured address book or calendar. Deletes always carry `If-Match`.
+  Recurrence rules are expanded only inside the sync window; rules that never match or need too
+  many steps are skipped, logged and reported in the calendar result. XML is
+  parsed with defusedxml and responses are capped at 20 MB.
 
 ## Installation
 
