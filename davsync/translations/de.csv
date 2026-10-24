@@ -96,3 +96,4 @@ The server URL must start with https://.,Die Server-URL muss mit https:// beginn
 "Push was switched off: more than {0} cards would be deleted within an hour. Check the archived and deleted contacts, then switch push on again.",Die Übertragung wurde abgeschaltet: Mehr als {0} Karten würden innerhalb einer Stunde gelöscht. Archivierte und gelöschte Kontakte prüfen und die Übertragung wieder einschalten.
 Skipped,Übersprungen
 Error,Fehler
+"{0} objects exceed the limits for recurring events; see Error Log.","{0} Kalenderobjekte überschreiten die Grenzen für Serientermine, siehe Fehlerprotokoll."

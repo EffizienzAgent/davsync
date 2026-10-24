@@ -68,11 +68,20 @@ def clean_path(url):
 	return normal if normal == path and "//" not in path else None
 
 
+FORBIDDEN_IN_HREF = ("\\", ";", "%25")
+
+
 def member_url(collection, href):
 	"""The absolute URL of href when it names an object inside collection, else UnsafeURL."""
+	if any(part in href.lower() for part in FORBIDDEN_IN_HREF):
+		raise UnsafeURL(f"{href} is outside the collection")
 	url = urljoin(collection, href)
 	base, path = clean_path(collection), clean_path(url)
-	if not (base and path) or not same_origin(url, collection):
+	try:
+		inside = bool(base and path) and same_origin(url, collection)
+	except ValueError:
+		inside = False
+	if not inside:
 		raise UnsafeURL(f"{href} is outside the collection")
 	base = base if base.endswith("/") else f"{base}/"
 	if not path.startswith(base) or path.rstrip("/") == base.rstrip("/") or urlparse(url).query:
@@ -165,7 +174,11 @@ class CardDAVClient:
 		return home_url, self.propfind(home_url, "<d:displayname/><d:resourcetype/>", depth=1)
 
 	def on_server(self, url):
-		if not same_origin(url, self.server_url):
+		try:
+			same = same_origin(url, self.server_url)
+		except ValueError:
+			same = False
+		if not same:
 			raise UnsafeURL("Server pointed to another host")
 		return url
 

@@ -111,32 +111,47 @@ class TestForgedFields(ContactSyncCase):
 		self.assertEqual(frappe.db.get_value("CardDAV Account", self.account, "push_enabled"), 0)
 		self.assertEqual(len([c for c in FakeServer.calls if c[0] == "delete"]), push.MASS_DELETE_COUNT)
 
-	def test_remote_address_and_notes_are_sanitized(self):
-		payload = '<img src=x onerror="alert(1)">'
-		href = self.card("Xss", "Card", "ADR;TYPE=WORK:;;Weg 1;Lübeck;Nord;23552;Germany")
-		self.pull()
-		text = FakeServer.cards[href][1]
-		FakeServer.cards[href] = ('"e2"', text.replace(";;Weg 1;Lübeck;Nord;", f";;Weg 1;Lübeck;{payload};"))
-		self.pull()
-		state = frappe.db.get_value(
-			"Address",
-			{
-				"name": (
-					"in",
-					frappe.get_all(
-						"Dynamic Link",
-						{"parenttype": "Address", "link_name": self.contact_at(href).name},
-						pluck="parent",
-					),
+	def test_remote_text_never_carries_markup(self):
+		for payload in ('"<img src=x onerror=alert(1)>"', "<img src=x onerror=alert(1) x="):
+			with self.subTest(payload=payload):
+				href = self.card(
+					"Xss",
+					"Card",
+					"ADR;TYPE=WORK:;;Weg 1;Lübeck;Nord;23552;Germany",
+					f"TITLE:{payload}",
+					f"NOTE:{payload}",
 				)
-			},
-			"state",
+				self.pull()
+				text = FakeServer.cards[href][1]
+				FakeServer.cards[href] = (
+					'"e2"',
+					text.replace(";;Weg 1;Lübeck;Nord;", f";;Weg 1;Lübeck;{payload};"),
+				)
+				self.pull()
+				doc = self.contact_at(href)
+				addresses = frappe.get_all(
+					"Dynamic Link", {"parenttype": "Address", "link_name": doc.name}, pluck="parent"
+				)
+				state = frappe.db.get_value("Address", {"name": ("in", addresses)}, "state")
+				for value in (state, doc.designation, doc.notes):
+					self.assertNotIn("<", value or "")
+					self.assertIn("onerror", value or "")
+				remote = pull.vcard.parse(text.replace("END:VCARD", f"NOTE:{payload}\r\nEND:VCARD"))
+				push.take_remote_only(doc, remote)
+				self.assertNotIn("<", frappe.db.get_value("Contact", doc.name, "notes") or "")
+
+	def test_event_text_never_carries_markup(self):
+		payload = "<img src=x onerror=alert(1) x="
+		[event] = ical.parse(
+			calendar(
+				vevent("x", extra=[f"SUMMARY:{payload}", f"LOCATION:{payload}", f"DESCRIPTION:{payload}"])
+			),
+			TestRecurrenceBombs.tz,
+			TestRecurrenceBombs.since,
+			TestRecurrenceBombs.until,
 		)
-		self.assertNotIn("onerror", state or "")
-		doc = self.contact_at(href)
-		remote = pull.vcard.parse(text.replace("END:VCARD", f"NOTE:{payload}\r\nEND:VCARD"))
-		push.take_remote_only(doc, remote)
-		self.assertNotIn("onerror", frappe.db.get_value("Contact", doc.name, "notes") or "")
+		for value in (event.summary, event.location, event.description):
+			self.assertNotIn("<", value)
 
 
 class TestClientBoundaries(IntegrationTestCase):
@@ -164,6 +179,10 @@ class TestClientBoundaries(IntegrationTestCase):
 			f"{BOOK_PATH}.",
 			f"{BOOK_PATH}a.vcf?x=1",
 			"//evil.example.test/a.vcf",
+			"https://cloud.example.test:99999/remote.php/dav/addressbooks/users/alice/contacts/a.vcf",
+			f"{BOOK_PATH}a\\..\\x.vcf",
+			f"{BOOK_PATH}a.vcf;x",
+			f"{BOOK_PATH}%252e%252e/x.vcf",
 		):
 			with self.subTest(href=href), self.assertRaises(UnsafeURL):
 				member_url(BOOK, href)
@@ -238,16 +257,42 @@ class TestRecurrenceBombs(IntegrationTestCase):
 			calendar(vevent("bomb", start=start, end=None, extra=extra)), self.tz, self.since, self.until
 		)
 
-	def test_sub_daily_rules_are_refused(self):
-		for rule in ("FREQ=SECONDLY", "FREQ=MINUTELY;INTERVAL=1", "FREQ=HOURLY", "INTERVAL=2"):
+	def test_sub_daily_series_from_long_ago_expand_quickly_in_the_window(self):
+		for rule in (
+			"FREQ=SECONDLY",
+			"FREQ=MINUTELY;INTERVAL=7",
+			"FREQ=HOURLY;INTERVAL=5",
+			"FREQ=DAILY;FREQ=SECONDLY",
+		):
+			with self.subTest(rule=rule):
+				started = time.monotonic()
+				events = self.parse(f"RRULE:{rule}", start="19000101T100000")
+				self.assertLess(time.monotonic() - started, 2)
+				self.assertGreater(len(events), 400)
+				self.assertGreaterEqual(min(e.start for e in events), self.since)
+
+	def test_hourly_series_keeps_its_phase(self):
+		events = self.parse("RRULE:FREQ=HOURLY;INTERVAL=5", start="20200101T030000")
+		hours = {
+			(e.start - __import__("datetime").datetime(2020, 1, 1, 3)).total_seconds() / 3600 % 5
+			for e in events
+		}
+		self.assertEqual(hours, {0.0})
+
+	def test_daily_series_from_long_ago(self):
+		events = self.parse("RRULE:FREQ=DAILY", start="17000101T100000")
+		self.assertEqual(len(events), 92)
+
+	def test_never_matching_rule_is_refused(self):
+		started = time.monotonic()
+		for rule in ("FREQ=DAILY;BYMONTH=2;BYMONTHDAY=30", "FREQ=SECONDLY;BYMONTH=4,6;BYMONTHDAY=31"):
 			with self.subTest(rule=rule), self.assertRaises(ical.UnsupportedEvent):
 				self.parse(f"RRULE:{rule}")
+		self.assertLess(time.monotonic() - started, 1)
 
-	def test_long_past_series_is_refused_quickly(self):
-		started = time.monotonic()
+	def test_counted_bomb_hits_the_step_limit(self):
 		with self.assertRaises(ical.UnsupportedEvent):
-			self.parse("RRULE:FREQ=DAILY", start="17000101T100000")
-		self.assertLess(time.monotonic() - started, 5)
+			self.parse("RRULE:FREQ=SECONDLY;COUNT=1000000000", start="20000101T000000")
 
 	def test_too_many_rules_are_refused(self):
 		with self.assertRaises(ical.UnsupportedEvent):
@@ -269,7 +314,13 @@ class TestRecurrenceBombs(IntegrationTestCase):
 			calendar_since="2026-01-01",
 		).name
 		href = "/remote.php/dav/calendars/alice/work/bomb.ics"
-		bomb = calendar(vevent("bomb", attendees=[("x@example.test", "X")], extra=["RRULE:FREQ=SECONDLY"]))
+		bomb = calendar(
+			vevent(
+				"bomb",
+				attendees=[("x@example.test", "X")],
+				extra=["RRULE:FREQ=DAILY;BYMONTH=2;BYMONTHDAY=30"],
+			)
+		)
 		fetched = []
 
 		class Server:
@@ -284,11 +335,12 @@ class TestRecurrenceBombs(IntegrationTestCase):
 				return [(href, '"b1"', bomb)]
 
 		with patch.object(sync, "CalDAVClient", Server), patch.object(frappe.db, "commit"):
-			self.assertEqual(sync.pull(account)["skipped"], 1)
+			self.assertTrue(sync.run_pull(account))
 			sync.pull(account)
 		row = frappe.db.get_value(
 			"Calendar Object", {"account": account, "href": href}, ["skipped", "error"], as_dict=True
 		)
 		self.assertEqual(row.skipped, 1)
-		self.assertIn("Unsupported", row.error)
+		self.assertIn("never matches", row.error)
+		self.assertIn("limits", frappe.db.get_value("CardDAV Account", account, "calendar_last_result"))
 		self.assertEqual(len(fetched), 1)

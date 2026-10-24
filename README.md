@@ -18,7 +18,8 @@ servers.
 - **Hardened against hostile input.** The sync bookkeeping fields cannot be set through the API or
   the desk. Requests only go to the account's server over https, never follow redirects, and only
   touch objects inside the configured address book or calendar. Deletes always carry `If-Match`.
-  Recurrence rules below daily, or ones that need too many steps, are skipped and logged. XML is
+  Recurrence rules are expanded only inside the sync window; rules that never match or need too
+  many steps are skipped, logged and reported in the calendar result. XML is
   parsed with defusedxml and responses are capped at 20 MB.
 
 ## Installation

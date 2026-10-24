@@ -4,11 +4,12 @@ import re
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta, timezone
 from html.parser import HTMLParser
+from time import monotonic
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from dateutil.rrule import rrulestr
 
-from davsync.carddav.vcard import parse_line, unescape, unfold
+from davsync.carddav.vcard import no_markup, parse_line, unescape, unfold
 
 DEFAULT_DURATION = timedelta(hours=1)
 DESCRIPTION_LIMIT = 10000
@@ -17,9 +18,16 @@ MAX_OCCURRENCES = 500
 MAX_ITERATIONS = 50000
 MAX_RULES = 5
 MAX_COMPONENTS = 1000
-FREQUENCIES = {"DAILY", "WEEKLY", "MONTHLY", "YEARLY"}
+MAX_SECONDS = 2
+PERIODS = {
+	2: timedelta(weeks=1),
+	3: timedelta(days=1),
+	4: timedelta(hours=1),
+	5: timedelta(minutes=1),
+	6: timedelta(seconds=1),
+}
+MONTH_DAYS = {1: 31, 2: 29, 3: 31, 4: 30, 5: 31, 6: 30, 7: 31, 8: 31, 9: 30, 10: 31, 11: 30, 12: 31}
 LINE_BREAK_TAGS = {"br", "p", "div", "li"}
-FREQ = re.compile(r"(?:^|;)FREQ=([A-Z]+)", re.I)
 UID_LENGTH = 200
 IGNORED_CUTYPES = {"ROOM", "RESOURCE"}
 KEY_FORMAT = "%Y%m%dT%H%M%S"
@@ -212,6 +220,10 @@ def parse_event(lines, tz):
 			attendee = person(prop)
 			if attendee and (prop.param("CUTYPE") or [""])[0].upper() not in IGNORED_CUTYPES:
 				event.attendees.append(attendee)
+	for name in ("summary", "description", "location", "url"):
+		setattr(event, name, no_markup(getattr(event, name)))
+	for attendee in [*event.attendees, *([event.organizer] if event.organizer else [])]:
+		attendee.name = no_markup(attendee.name)
 	event.recurring = bool(event.rules or event.rdates)
 	if event.start and not event.end and duration:
 		event.end = event.start + duration
@@ -249,21 +261,20 @@ def expand(master, tz, since, until):
 	source = master.start.tzinfo
 	start = wall_clock(master.start, source)
 	window = (wall_clock(since.replace(tzinfo=tz), source), wall_clock(until.replace(tzinfo=tz), source))
-	starts, iterations = set(), 0
+	starts, iterations, started = set(), 0, monotonic()
 	if len(master.rules) > MAX_RULES:
 		raise UnsupportedEvent(f"More than {MAX_RULES} recurrence rules")
-	for rule in master.rules:
-		frequency = FREQ.search(rule)
-		if not frequency or frequency.group(1).upper() not in FREQUENCIES:
-			raise UnsupportedEvent(f"Unsupported recurrence rule {rule[:100]}")
-		for occurrence in rrulestr(naive_rule(rule, source), dtstart=start, cache=False):
+	for text in master.rules:
+		for occurrence in windowed(rrulestr(naive_rule(text, source), dtstart=start, cache=False), window):
 			iterations += 1
 			if iterations > MAX_ITERATIONS:
-				raise UnsupportedEvent(f"Recurrence rule {rule[:100]} needs too many steps")
+				raise UnsupportedEvent(f"Recurrence rule {text[:100]} needs too many steps")
 			if occurrence > window[1] or len(starts) >= MAX_OCCURRENCES:
 				break
 			if occurrence >= window[0]:
 				starts.add(occurrence)
+	if monotonic() - started > MAX_SECONDS:
+		raise UnsupportedEvent("Recurrence rules take too long to expand")
 	starts |= {
 		wall_clock(d, source) for d in master.rdates if window[0] <= wall_clock(d, source) <= window[1]
 	}
@@ -271,6 +282,31 @@ def expand(master, tz, since, until):
 		starts.add(start)
 	starts -= {wall_clock(d, source) for d in master.exdates}
 	return sorted(s if source is None else s.replace(tzinfo=source) for s in starts)
+
+
+def windowed(rule, window):
+	"""The rule cut to the window: UNTIL at its end and, for fixed-length periods, DTSTART moved by whole
+	periods to just before its start, which keeps every occurrence in the window."""
+	if never_matches(rule):
+		raise UnsupportedEvent("Recurrence rule never matches")
+	if rule._count:
+		return rule
+	changes = {"until": min(rule._until, window[1]) if rule._until else window[1]}
+	period = PERIODS.get(rule._freq)
+	if period and not rule._bysetpos:
+		step = period * rule._interval
+		skipped = (window[0] - rule._dtstart) // step - 1
+		if skipped > 0:
+			changes["dtstart"] = rule._dtstart + skipped * step
+	return rule.replace(**changes)
+
+
+def never_matches(rule):
+	months = rule._bymonth or range(1, 13)
+	days = rule._bymonthday or ()
+	if not days or rule._bynmonthday:
+		return False
+	return not any(day <= MONTH_DAYS[month] for month in months for day in days)
 
 
 def uid_key(uid):

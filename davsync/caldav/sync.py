@@ -103,9 +103,14 @@ def record_error(account, exc):
 
 
 def result_summary(counts):
-	return _("Created {0}, linked {1}, updated {2}, cancelled {3}, skipped {4}, failed {5}.").format(
+	summary = _("Created {0}, linked {1}, updated {2}, cancelled {3}, skipped {4}, failed {5}.").format(
 		*(counts[key] for key in COUNTS)
 	)
+	if counts["limited"]:
+		summary += " " + _("{0} objects exceed the limits for recurring events; see Error Log.").format(
+			counts["limited"]
+		)
+	return summary
 
 
 def known_objects(account):
@@ -235,7 +240,7 @@ def pull_one(context, href, etag, text):
 			reference_name=context.account,
 		)
 		remember(context.account, href, etag, error=str(exc)[:500])
-		return Counter(skipped=1)
+		return Counter(limited=1)
 	except Exception as exc:
 		frappe.db.rollback(save_point=SAVEPOINT)
 		frappe.clear_messages()

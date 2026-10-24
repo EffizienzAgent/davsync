@@ -7,7 +7,6 @@ from urllib.parse import urlparse
 import frappe
 from frappe.utils import add_to_date, cstr, now_datetime, validate_email_address
 from frappe.utils.background_jobs import is_job_enqueued
-from frappe.utils.html_utils import sanitize_html
 
 from davsync.carddav import pull, vcard
 from davsync.carddav.adapter import get_adapter
@@ -397,7 +396,7 @@ def without_rev(raw):
 
 
 def take_remote_only(doc, remote):
-	store(doc, {"notes": sanitize_html(remote.note) or None})
+	store(doc, {"notes": vcard.no_markup(remote.note) or None})
 	pull.set_photo(doc, remote, authoritative=True)
 
 
