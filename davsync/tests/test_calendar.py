@@ -167,3 +167,24 @@ class TestCalendarSync(IntegrationTestCase):
 		account.reload()
 		self.assertEqual((account.calendar_fresh, account.calendar_url_changed), (1, 1))
 		self.assertFalse(account.calendar_sync_token)
+
+
+class TestEventUidIndex(IntegrationTestCase):
+	def make_event(self, account, uid):
+		return frappe.get_doc(
+			{
+				"doctype": "Event",
+				"subject": "Index",
+				"starts_on": "2026-07-15 10:00:00",
+				"caldav_account": account,
+				"caldav_uid": uid,
+			}
+		).insert()
+
+	def test_uid_is_unique_per_account_only(self):
+		first, second = make_carddav_account().name, make_carddav_account().name
+		uid = f"shared-{tag()}"
+		self.make_event(first, uid)
+		self.make_event(second, uid)
+		with self.assertRaises(frappe.UniqueValidationError):
+			self.make_event(first, uid)

@@ -5,8 +5,8 @@ app_description = "CardDAV and CalDAV sync for the Frappe Framework"
 app_email = "oss@effizienzagent.de"
 app_license = "mit"
 
-after_sync = "davsync.install.ensure_contact_index"
-after_migrate = "davsync.install.ensure_contact_index"
+after_sync = "davsync.install.ensure_indexes"
+after_migrate = "davsync.install.ensure_indexes"
 
 fixtures = [{"dt": "Custom Field", "filters": [["module", "=", "DAV Sync"]]}]
 

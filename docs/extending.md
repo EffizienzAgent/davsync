@@ -75,7 +75,12 @@ By default events go into Frappe's `Event`. To import them into another doctype,
 ## Settings
 
 **DAV Sync Settings** holds the site-wide defaults. `davsync.settings` reads them:
-`default_country()`, `phone_region()` and `self_emails()`. The site config key
+`default_country()`, `phone_region()` and `self_emails()`.
+
+Phone numbers without a country code are parsed with `phone_region()`: the *Phone Region* setting,
+else the code of the default country (the setting, else the system default), else `DE`. An empty
+setting therefore follows the system country, so set it explicitly when your stored numbers assume
+a fixed region, otherwise changing the system country changes how new numbers are normalised. The site config key
 `calendar_self_emails` (a list) overrides the own e-mail addresses.
 
 ## Flags
