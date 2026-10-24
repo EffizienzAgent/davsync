@@ -18,11 +18,12 @@ servers.
 ## Installation
 
 ```bash
-bench get-app https://github.com/EffizienzAgent/davsync
-bench --site your.site install-app davsync
+bench get-app https://github.com/EffizienzAgent/davsync --branch version-16
+bench --site <site> install-app davsync
 ```
 
-Requires Frappe v16 and Python 3.14.
+**Compatibility:** Frappe v16 (Python 3.14). The `version-16` branch always points to the latest release; tagged
+releases and the changelog are on the [releases page](https://github.com/EffizienzAgent/davsync/releases).
 
 ## Setup
 
