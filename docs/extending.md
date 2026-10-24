@@ -82,3 +82,9 @@ By default events go into Frappe's `Event`. To import them into another doctype,
 
 While a pull runs, `frappe.flags.in_carddav_pull` is set, and `frappe.flags.in_carddav_import`
 during an initial import. Other apps' document hooks can skip their own side effects then.
+
+The `carddav_*` fields on Contact and the `caldav_*` fields on Event are reset to their stored
+values on every save, because Frappe does not enforce `read_only` on the server. Code that has to
+write them through a document save runs inside `davsync.guard.trusted()`. A custom calendar target
+doctype should register `davsync.guard.protect_caldav` as its `validate` hook too; davsync calls
+`upsert` and `cancel` inside `trusted()` during a sync.

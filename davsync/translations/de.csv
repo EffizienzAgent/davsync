@@ -91,3 +91,8 @@ Imports the appointments of the calendar since the import date. Nothing is writt
 Imports all contacts from the address book.,Importiert alle Kontakte aus dem Adressbuch.
 Send all contacts to the address book,Alle Kontakte ans Adressbuch senden
 Sends all contacts of the owner user to the address book. Continue?,Sendet alle Kontakte des Inhabers ans Adressbuch. Fortfahren?
+The server URL must start with https://.,Die Server-URL muss mit https:// beginnen.
+{0} must be on the same server as the server URL.,{0} muss auf demselben Server wie die Server-URL liegen.
+"Push was switched off: more than {0} cards would be deleted within an hour. Check the archived and deleted contacts, then switch push on again.",Die Übertragung wurde abgeschaltet: Mehr als {0} Karten würden innerhalb einer Stunde gelöscht. Archivierte und gelöschte Kontakte prüfen und die Übertragung wieder einschalten.
+Skipped,Übersprungen
+Error,Fehler

@@ -1,9 +1,9 @@
 import copy
 import hashlib
-import html
 import re
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta, timezone
+from html.parser import HTMLParser
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from dateutil.rrule import rrulestr
@@ -12,7 +12,14 @@ from davsync.carddav.vcard import parse_line, unescape, unfold
 
 DEFAULT_DURATION = timedelta(hours=1)
 DESCRIPTION_LIMIT = 10000
+SOURCE_LIMIT = 100000
 MAX_OCCURRENCES = 500
+MAX_ITERATIONS = 50000
+MAX_RULES = 5
+MAX_COMPONENTS = 1000
+FREQUENCIES = {"DAILY", "WEEKLY", "MONTHLY", "YEARLY"}
+LINE_BREAK_TAGS = {"br", "p", "div", "li"}
+FREQ = re.compile(r"(?:^|;)FREQ=([A-Z]+)", re.I)
 UID_LENGTH = 200
 IGNORED_CUTYPES = {"ROOM", "RESOURCE"}
 KEY_FORMAT = "%Y%m%dT%H%M%S"
@@ -25,6 +32,10 @@ WINDOWS_ZONES = {
 	"Romance Standard Time": "Europe/Paris",
 	"GMT Standard Time": "Europe/London",
 }
+
+
+class UnsupportedEvent(ValueError):
+	"""An object the sync refuses to expand; it is skipped until it changes."""
 
 
 @dataclass
@@ -117,12 +128,28 @@ def person(prop):
 	return Attendee(email, "" if name.lower() == email else name, partstat)
 
 
+class TextExtractor(HTMLParser):
+	def __init__(self):
+		super().__init__(convert_charrefs=True)
+		self.parts = []
+
+	def handle_starttag(self, tag, attrs):
+		if tag == "br":
+			self.parts.append("\n")
+
+	def handle_endtag(self, tag):
+		if tag in LINE_BREAK_TAGS - {"br"}:
+			self.parts.append("\n")
+
+	def handle_data(self, data):
+		self.parts.append(data)
+
+
 def plain_text(value):
-	text = unescape(value)
-	if re.search(r"<[a-zA-Z/][^>]*>", text):
-		text = re.sub(r"<br\s*/?>|</p>|</div>|</li>", "\n", text, flags=re.I)
-		text = re.sub(r"<[^>]+>", "", text)
-	text = html.unescape(text).replace("\r\n", "\n").strip()
+	parser = TextExtractor()
+	parser.feed(unescape(value)[:SOURCE_LIMIT])
+	parser.close()
+	text = "".join(parser.parts).replace("\r\n", "\n").strip()
 	return re.sub(r"\n{3,}", "\n\n", text)[:DESCRIPTION_LIMIT]
 
 
@@ -222,9 +249,17 @@ def expand(master, tz, since, until):
 	source = master.start.tzinfo
 	start = wall_clock(master.start, source)
 	window = (wall_clock(since.replace(tzinfo=tz), source), wall_clock(until.replace(tzinfo=tz), source))
-	starts = set()
+	starts, iterations = set(), 0
+	if len(master.rules) > MAX_RULES:
+		raise UnsupportedEvent(f"More than {MAX_RULES} recurrence rules")
 	for rule in master.rules:
+		frequency = FREQ.search(rule)
+		if not frequency or frequency.group(1).upper() not in FREQUENCIES:
+			raise UnsupportedEvent(f"Unsupported recurrence rule {rule[:100]}")
 		for occurrence in rrulestr(naive_rule(rule, source), dtstart=start, cache=False):
+			iterations += 1
+			if iterations > MAX_ITERATIONS:
+				raise UnsupportedEvent(f"Recurrence rule {rule[:100]} needs too many steps")
 			if occurrence > window[1] or len(starts) >= MAX_OCCURRENCES:
 				break
 			if occurrence >= window[0]:
@@ -264,7 +299,10 @@ def occurrences(master, tz, since, until):
 
 def parse(text, tz, since, until) -> list[Event]:
 	"""One event per object; recurring series expand to occurrences between since and until."""
-	events = [parse_event(lines, tz) for lines in components(text, "VEVENT")]
+	blocks = components(text, "VEVENT")
+	if len(blocks) > MAX_COMPONENTS:
+		raise UnsupportedEvent(f"More than {MAX_COMPONENTS} events in one object")
+	events = [parse_event(lines, tz) for lines in blocks]
 	events = [e for e in events if e.start]
 	masters = [e for e in events if not e.recurrence_id]
 	overrides = [e for e in events if e.recurrence_id]

@@ -1,12 +1,18 @@
+from urllib.parse import urlparse
+
 import frappe
 from frappe import _
 from frappe.model.document import Document
 
 from davsync.caldav.ignores import normalize
+from davsync.carddav.client import same_origin
+
+LOOPBACK = {"localhost", "127.0.0.1", "::1"}
 
 
 class CardDAVAccount(Document):
 	def validate(self):
+		self.validate_urls()
 		self.validate_ignored_attendees()
 		if self.is_new():
 			return
@@ -16,6 +22,20 @@ class CardDAVAccount(Document):
 			self.calendar_fresh = 1
 		if url_changed:
 			self.calendar_url_changed = 1
+
+	def validate_urls(self):
+		server = urlparse(self.server_url or "")
+		local = server.hostname in LOOPBACK and (frappe.flags.in_test or frappe.conf.developer_mode)
+		if not server.hostname or not (server.scheme == "https" or (server.scheme == "http" and local)):
+			frappe.throw(_("The server URL must start with https://."))
+		for field in ("address_book_url", "calendar_url"):
+			url = self.get(field)
+			if url and not same_origin(url, self.server_url):
+				frappe.throw(
+					_("{0} must be on the same server as the server URL.").format(
+						_(self.meta.get_label(field))
+					)
+				)
 
 	def validate_ignored_attendees(self):
 		seen = set()

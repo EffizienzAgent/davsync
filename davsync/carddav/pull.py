@@ -6,6 +6,7 @@ import phonenumbers
 from frappe.core.doctype.file.utils import get_content_hash
 from frappe.utils import add_to_date, cstr, now_datetime, validate_email_address
 from frappe.utils.background_jobs import is_job_enqueued
+from frappe.utils.html_utils import sanitize_html
 from frappe.utils.password import get_decrypted_password
 
 from davsync.carddav import vcard
@@ -513,6 +514,7 @@ def has_content(fields):
 
 
 def update_address(row, values):
+	values = {k: sanitize_html(v) if isinstance(v, str) else v for k, v in values.items()}
 	changed = {k: values[k] for k in UPDATED_ADDRESS_FIELDS if (row.get(k) or None) != (values[k] or None)}
 	if changed:
 		frappe.db.set_value("Address", row.name, changed)

@@ -16,6 +16,7 @@ from davsync.caldav.ignores import (
 )
 from davsync.caldav.target import get_target
 from davsync.carddav.pull import failure_trace, is_mass_archive, job_running
+from davsync.guard import trusted
 from davsync.settings import self_emails as configured_self_emails
 
 SAVEPOINT = "caldav_object"
@@ -108,7 +109,9 @@ def result_summary(counts):
 
 
 def known_objects(account):
-	rows = frappe.get_all("Calendar Object", filters={"account": account}, fields=["href", "etag", "failed"])
+	rows = frappe.get_all(
+		"Calendar Object", filters={"account": account}, fields=["href", "etag", "failed", "skipped"]
+	)
 	return {row.href: row for row in rows}
 
 
@@ -123,20 +126,15 @@ def stale_hrefs(account):
 	)
 
 
-def remember(account, href, etag, failed=False):
+def remember(account, href, etag, failed=False, error=None):
+	values = {"etag": etag, "failed": int(failed), "skipped": int(bool(error)), "error": error}
 	name = frappe.db.get_value("Calendar Object", {"account": account, "href": href})
 	if name:
-		frappe.db.set_value("Calendar Object", name, {"etag": etag, "failed": int(failed)})
+		frappe.db.set_value("Calendar Object", name, values)
 	else:
-		frappe.get_doc(
-			{
-				"doctype": "Calendar Object",
-				"account": account,
-				"href": href,
-				"etag": etag,
-				"failed": int(failed),
-			}
-		).insert(ignore_permissions=True)
+		frappe.get_doc({"doctype": "Calendar Object", "account": account, "href": href, **values}).insert(
+			ignore_permissions=True
+		)
 
 
 def forget(account, href):
@@ -145,6 +143,8 @@ def forget(account, href):
 
 def needs_fetch(href, etag, known, fresh, full):
 	row = known.get(href)
+	if row and row.skipped and etag and row.etag == etag:
+		return False
 	if fresh or not etag or not row:
 		return True
 	return row.etag != etag or bool(full and row.failed)
@@ -224,7 +224,18 @@ def pull_one(context, href, etag, text):
 	frappe.db.savepoint(SAVEPOINT)
 	try:
 		events = ical.parse(text, context.tz, context.since, context.until)
-		outcomes = apply_object(context, href, etag, events)
+		with trusted():
+			outcomes = apply_object(context, href, etag, events)
+	except ical.UnsupportedEvent as exc:
+		frappe.db.rollback(save_point=SAVEPOINT)
+		frappe.log_error(
+			title=f"CalDAV event skipped: {href}",
+			message=str(exc),
+			reference_doctype="CardDAV Account",
+			reference_name=context.account,
+		)
+		remember(context.account, href, etag, error=str(exc)[:500])
+		return Counter(skipped=1)
 	except Exception as exc:
 		frappe.db.rollback(save_point=SAVEPOINT)
 		frappe.clear_messages()
