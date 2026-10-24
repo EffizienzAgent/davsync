@@ -3,6 +3,7 @@ from unittest.mock import patch
 import frappe
 from frappe.tests import IntegrationTestCase
 
+from davsync import guard
 from davsync.caldav import sync
 from davsync.caldav.target import CalendarTarget
 from davsync.tests.helpers import guard_commit, make_carddav_account, make_contact, make_user, tag, use_hooks
@@ -171,15 +172,16 @@ class TestCalendarSync(IntegrationTestCase):
 
 class TestEventUidIndex(IntegrationTestCase):
 	def make_event(self, account, uid):
-		return frappe.get_doc(
-			{
-				"doctype": "Event",
-				"subject": "Index",
-				"starts_on": "2026-07-15 10:00:00",
-				"caldav_account": account,
-				"caldav_uid": uid,
-			}
-		).insert()
+		with guard.trusted():
+			return frappe.get_doc(
+				{
+					"doctype": "Event",
+					"subject": "Index",
+					"starts_on": "2026-07-15 10:00:00",
+					"caldav_account": account,
+					"caldav_uid": uid,
+				}
+			).insert()
 
 	def test_uid_is_unique_per_account_only(self):
 		first, second = make_carddav_account().name, make_carddav_account().name
