@@ -1,0 +1,56 @@
+{
+ "docstatus": 0,
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "module": "DAV Sync",
+ "custom": 0,
+ "name": "Calendar Object",
+ "autoname": "hash",
+ "description": "Sync bookkeeping: last seen etag per calendar object.",
+ "field_order": [
+  "account",
+  "href",
+  "etag",
+  "failed"
+ ],
+ "fields": [
+  {
+   "fieldname": "account",
+   "fieldtype": "Link",
+   "label": "CardDAV Account",
+   "options": "CardDAV Account",
+   "reqd": 1,
+   "in_list_view": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "href",
+   "fieldtype": "Small Text",
+   "label": "Calendar Href",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "etag",
+   "fieldtype": "Data",
+   "label": "Calendar ETag"
+  },
+  {
+   "fieldname": "failed",
+   "fieldtype": "Check",
+   "label": "Failed",
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "delete": 1,
+   "report": 1
+  }
+ ],
+ "modified": "2026-10-24 12:00:00.000000"
+}

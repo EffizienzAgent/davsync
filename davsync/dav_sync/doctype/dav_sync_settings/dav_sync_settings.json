@@ -1,0 +1,19 @@
+{
+ "doctype": "DocType",
+ "name": "DAV Sync Settings",
+ "module": "DAV Sync",
+ "custom": 0,
+ "issingle": 1,
+ "engine": "InnoDB",
+ "field_order": ["default_country", "phone_region", "self_emails"],
+ "fields": [
+  {"fieldname": "default_country", "fieldtype": "Link", "label": "Default Country", "options": "Country", "description": "Country of addresses that carry none. Empty uses the system default country."},
+  {"fieldname": "phone_region", "fieldtype": "Data", "label": "Phone Region", "length": 2, "description": "Two-letter region for phone numbers without a country code, e.g. DE. Empty uses the default country."},
+  {"fieldname": "self_emails", "fieldtype": "Small Text", "label": "Own E-mail Addresses", "description": "One address per line. Calendar attendees with these addresses are not participants; the account owner's address is always included."}
+ ],
+ "permissions": [{"role": "System Manager", "read": 1, "write": 1, "create": 1}],
+ "modified": "2026-10-24 12:00:00.000000",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

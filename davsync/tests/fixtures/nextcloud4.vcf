@@ -1,0 +1,14 @@
+BEGIN:VCARD
+VERSION:4.0
+PRODID:-//Sabre//Sabre VObject 4.5.6//EN
+UID:nc-0001-synthetic
+KIND:individual
+FN:Max Beispiel
+N:Beispiel;Max;;;
+EMAIL;TYPE=home:max@example.net
+TEL;TYPE="cell,voice";VALUE=uri:tel:+49-171-2223334
+ADR;TYPE=home:;;Hauptweg 5;Lübeck;SH;23552;Germany
+BDAY:--0704
+PHOTO:data:image/png;base64,iVBORw0KGgo=
+REV:20260101T000000Z
+END:VCARD

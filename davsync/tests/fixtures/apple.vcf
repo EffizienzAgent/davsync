@@ -1,0 +1,32 @@
+BEGIN:VCARD
+VERSION:3.0
+PRODID:-//BusyApps//BusyContacts 2026.4.1//EN
+N:Mustermann;Erika;Maria;Dr.;MBA
+FN:Dr. Erika Mustermann
+ORG:Beispiel\, Muster & Co. GmbH;Vertrieb
+TITLE:Head of Sales
+EMAIL;TYPE=WORK;TYPE=INTERNET;TYPE=pref:erika@example.com
+item1.EMAIL;TYPE=INTERNET:erika.private@example.org
+item1.X-ABLabel:iCloud
+TEL;TYPE=CELL;TYPE=pref:+49 170 1234567
+TEL;TYPE=WORK;TYPE=FAX:+49 40 7654321
+item2.TEL:+49 30 1111111
+item2.X-ABLabel:Notfall
+item3.ADR;TYPE=WORK;TYPE=pref:;;Musterstraße 1\, Hinterhaus;Hamburg;;20095;D
+ eutschland
+item3.X-ABADR:de
+BDAY;X-APPLE-OMIT-YEAR=1604:1604-03-15
+NOTE:Met at the fair\nLikes coffee\; no sugar
+CATEGORIES:Kunden,Messe
+X-SOCIALPROFILE;TYPE=LINKEDIN;TYPE=pref:https://www.linkedin.com/in/example-e
+ rika
+IMPP;TYPE=pref;X-SERVICE-TYPE=Facebook:xmpp:erika.example
+item4.URL;TYPE=pref:https://example.com
+item4.X-ABLabel:_$!<HomePage>!$_
+PHOTO;ENCODING=B;TYPE=JPEG:/9j/4HN5bnRoZXRpYy1qcGVnLXN5bnRoZXRpYy1qcGVnLXN5bnRoZXRpY
+ y1qcGVnLXN5bnRoZXRpYy1qcGVnLXN5bnRoZXRpYy1qcGVnLXN5bnRoZXRpYy1qcGVnLXN5bnRo
+ ZXRpYy1qcGVnLXN5bnRoZXRpYy1qcGVnLQ==
+X-CREATED:2024-05-01T10:00:00Z
+UID:4F2A9C1E-0000-4000-8000-00000000A001
+REV:2026-01-01T00:00:00Z
+END:VCARD

@@ -1,0 +1,107 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.event_name == 'pull_request' && github.head_ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  SITE: davsync.test
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+      - run: pip install ruff
+      - run: ruff check .
+      - run: ruff format --check .
+
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      redis:
+        image: redis:8-alpine
+        ports: ['6379:6379']
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        id: python
+        with:
+          python-version: '3.14'
+      - uses: actions/setup-node@v5
+        id: node
+        with:
+          node-version: '24'
+      - name: Read pinned versions
+        run: grep -E '^[A-Z_]+=' .github/versions.env >> "$GITHUB_ENV"
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.cache/yarn
+          key: deps-${{ runner.os }}-py${{ steps.python.outputs.python-version }}-${{ env.FRAPPE_COMMIT }}
+          restore-keys: deps-${{ runner.os }}-py${{ steps.python.outputs.python-version }}-
+      - uses: actions/cache/restore@v4
+        id: bench
+        with:
+          path: ~/frappe-bench
+          key: bench-${{ runner.os }}-py${{ steps.python.outputs.python-version }}-node${{ steps.node.outputs.node-version }}-${{ env.FRAPPE_COMMIT }}
+      - name: Start MariaDB and Radicale
+        run: |
+          docker run -d --name db -p 3306:3306 -e MARIADB_ROOT_PASSWORD=123 mariadb:11.8 \
+            --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci \
+            --skip-character-set-client-handshake
+          docker run -d --name radicale -p 5232:5232 -e RADICALE_CONFIG=/config/config \
+            -v "$GITHUB_WORKSPACE/.github/radicale:/config:ro" tomsquest/docker-radicale:3.5.4.0
+          until docker exec db healthcheck.sh --connect --innodb_initialized; do sleep 2; done
+          until curl -s -o /dev/null http://127.0.0.1:5232/; do sleep 1; done
+      - name: Install bench
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mariadb-client
+          command -v yarn || npm i -g yarn
+          pip install frappe-bench
+      - name: Init bench
+        if: steps.bench.outputs.cache-hit != 'true'
+        run: |
+          git init -q "$RUNNER_TEMP/frappe"
+          git -C "$RUNNER_TEMP/frappe" fetch -q --depth 1 https://github.com/frappe/frappe "$FRAPPE_COMMIT"
+          git -C "$RUNNER_TEMP/frappe" checkout -q -b "$FRAPPE_BRANCH" FETCH_HEAD
+          bench init --frappe-branch "$FRAPPE_BRANCH" --frappe-path "$RUNNER_TEMP/frappe" \
+            --skip-redis-config-generation --skip-assets "$HOME/frappe-bench"
+          test "$(git -C "$HOME/frappe-bench/apps/frappe" rev-parse HEAD)" = "$FRAPPE_COMMIT"
+      - uses: actions/cache/save@v4
+        if: steps.bench.outputs.cache-hit != 'true'
+        with:
+          path: ~/frappe-bench
+          key: ${{ steps.bench.outputs.cache-primary-key }}
+      - name: Install app
+        run: |
+          cd ~/frappe-bench
+          bench set-config -g db_host 127.0.0.1
+          bench set-config -g redis_cache redis://127.0.0.1:6379
+          bench set-config -g redis_queue redis://127.0.0.1:6379
+          bench set-config -g redis_socketio redis://127.0.0.1:6379
+          git -C "$GITHUB_WORKSPACE" checkout -B ci-test
+          bench get-app "$GITHUB_WORKSPACE" --branch ci-test
+          bench new-site "$SITE" --db-root-password 123 --admin-password admin --mariadb-user-host-login-scope=%
+          bench --site "$SITE" install-app davsync
+          bench --site "$SITE" set-config allow_tests true
+          bench --site "$SITE" migrate
+      - name: Run tests
+        env:
+          DAVSYNC_TEST_SERVER: http://127.0.0.1:5232
+        run: cd ~/frappe-bench && bench --site "$SITE" run-tests --app davsync

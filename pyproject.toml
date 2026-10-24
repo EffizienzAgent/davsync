@@ -1,0 +1,31 @@
+[project]
+name = "davsync"
+authors = [{ name = "EffizienzAgent", email = "oss@effizienzagent.de" }]
+description = "CardDAV and CalDAV sync for the Frappe Framework"
+requires-python = ">=3.14"
+readme = "README.md"
+license = "MIT"
+dynamic = ["version"]
+dependencies = [
+    # "frappe~=16.0.0" # Installed and managed by bench.
+    "phonenumbers~=9.0",
+]
+
+[project.urls]
+Repository = "https://github.com/EffizienzAgent/davsync"
+
+[build-system]
+requires = ["flit_core >=3.4,<4"]
+build-backend = "flit_core.buildapi"
+
+[tool.ruff]
+line-length = 110
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["F", "E", "W", "I", "UP", "B", "RUF"]
+ignore = ["B904", "E501", "W191", "UP030", "UP031", "UP032"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "tab"
