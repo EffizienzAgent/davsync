@@ -96,7 +96,7 @@ def escape(text):
 def parse_multistatus(response):
 	try:
 		root = fromstring(response.content)
-	except (ParseError, DefusedXmlException):
+	except ParseError, DefusedXmlException:
 		raise CardDAVError("Server returned invalid XML") from None
 	entries = [parse_response(node) for node in root.findall("d:response", NS)]
 	return entries, root.findtext("d:sync-token", "", NS).strip()
