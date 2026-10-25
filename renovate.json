@@ -1,0 +1,30 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", "helpers:pinGitHubActionDigests"],
+  "timezone": "Europe/Berlin",
+  "schedule": ["before 6am on monday"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Frappe commit CI tests against",
+      "managerFilePatterns": ["/^\\.github/versions\\.env$/"],
+      "matchStrings": ["FRAPPE_BRANCH=(?<currentValue>\\S+)\\nFRAPPE_COMMIT=(?<currentDigest>[0-9a-f]{40})"],
+      "datasourceTemplate": "git-refs",
+      "depNameTemplate": "frappe",
+      "packageNameTemplate": "https://github.com/frappe/frappe"
+    },
+    {
+      "customType": "regex",
+      "description": "frappe-bench version CI installs",
+      "managerFilePatterns": ["/^\\.github/workflows/.+\\.ya?ml$/"],
+      "matchStrings": ["pip install (?<depName>frappe-bench)==(?<currentValue>\\S+)"],
+      "datasourceTemplate": "pypi"
+    }
+  ],
+  "packageRules": [
+    {
+      "matchPackageNames": ["frappe"],
+      "automerge": false
+    }
+  ]
+}
