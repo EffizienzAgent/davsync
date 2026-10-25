@@ -1,6 +1,6 @@
 [project]
 name = "davsync"
-authors = [{ name = "EffizienzAgent", email = "oss@effizienzagent.de" }]
+authors = [{ name = "EffizienzAgent (Tobias Mende)", email = "oss@effizienzagent.de" }]
 description = "CardDAV and CalDAV sync for the Frappe Framework"
 requires-python = ">=3.14"
 readme = "README.md"

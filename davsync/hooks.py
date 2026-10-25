@@ -1,6 +1,6 @@
 app_name = "davsync"
 app_title = "DAV Sync"
-app_publisher = "EffizienzAgent"
+app_publisher = "EffizienzAgent (Tobias Mende)"
 app_description = "CardDAV and CalDAV sync for the Frappe Framework"
 app_email = "oss@effizienzagent.de"
 app_license = "mit"
