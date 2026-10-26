@@ -75,13 +75,19 @@ By default events go into Frappe's `Event`. To import them into another doctype,
 ## Settings
 
 **DAV Sync Settings** holds the site-wide defaults. `davsync.settings` reads them:
-`default_country()`, `phone_region()` and `self_emails()`.
+`default_country()`, `phone_region()`, `self_emails()` and `sync_interval(kind)`.
 
 Phone numbers without a country code are parsed with `phone_region()`: the *Phone Region* setting,
 else the code of the default country (the setting, else the system default), else `DE`. An empty
 setting therefore follows the system country, so set it explicitly when your stored numbers assume
 a fixed region, otherwise changing the system country changes how new numbers are normalised. The site config key
 `calendar_self_emails` (a list) overrides the own e-mail addresses.
+
+The scheduler calls `pull_all` and `sync_all` every minute; each returns early unless
+`sync_due("contacts")` or `sync_due("calendar")` says the configured interval has passed since the
+last run, tracked in the Redis cache. Tests that call them more than once patch the gate:
+`patch("davsync.carddav.pull.sync_due", return_value=True)` and
+`patch("davsync.caldav.sync.sync_due", return_value=True)`.
 
 ## Flags
 
