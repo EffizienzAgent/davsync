@@ -41,9 +41,11 @@ releases and the changelog are on the [releases page](https://github.com/Effizie
 3. For the calendar, set *Calendar Name* or leave it empty, click **Calendar → Find calendar**,
    tick *Calendar Sync Enabled* and **Start calendar import**.
 4. Optional: **DAV Sync Settings** sets the default country of addresses, the phone region for
-   numbers without a country code and your own e-mail addresses, which never count as attendees.
+   numbers without a country code, your own e-mail addresses, which never count as attendees, and
+   the sync intervals for contacts and the calendar.
 
-The scheduler syncs every five minutes and refreshes recurring series daily.
+The scheduler syncs every five minutes by default and refreshes recurring series daily. Incremental
+runs use sync tokens, so short intervals are cheap.
 
 See [docs/nextcloud.md](docs/nextcloud.md) for a Nextcloud walk-through and
 [docs/extending.md](docs/extending.md) for linking contacts and events to your own doctypes.
@@ -56,7 +58,7 @@ See [docs/nextcloud.md](docs/nextcloud.md) for a Nextcloud walk-through and
   Otherwise a new contact is created.
 - A card deleted on the server archives the contact (`archived`), it is never deleted.
 - Archiving a contact or ticking *Exclude from address book* removes the card from the server.
-- Saving a contact pushes it right away. The five-minute run catches up on anything missed and
+- Saving a contact pushes it right away. The scheduled run catches up on anything missed and
   picks up new contacts once the first pull has finished.
 
 ## Development

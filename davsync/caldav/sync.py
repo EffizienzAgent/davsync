@@ -18,6 +18,7 @@ from davsync.caldav.target import get_target
 from davsync.carddav.pull import failure_trace, is_mass_archive, job_running
 from davsync.guard import trusted
 from davsync.settings import self_emails as configured_self_emails
+from davsync.settings import sync_due, sync_interval
 
 SAVEPOINT = "caldav_object"
 RUN_SAVEPOINT = "caldav_run"
@@ -61,6 +62,8 @@ def calendar_accounts():
 
 
 def sync_all() -> None:
+	if not sync_due("calendar"):
+		return
 	for account in calendar_accounts():
 		if not job_running(account, LONG_JOBS):
 			run_pull(account)
@@ -316,5 +319,7 @@ def request_refetch(account, hrefs):
 
 def refetch_note(account):
 	if frappe.db.get_value("CardDAV Account", account, "calendar_enabled"):
-		return _("The calendar data is refreshed with the next calendar sync (within 5 minutes).")
+		return _("The calendar data is refreshed with the next calendar sync (within {0} min).").format(
+			sync_interval("calendar")
+		)
 	return _("The calendar sync is disabled; the calendar data is refreshed once it is enabled.")

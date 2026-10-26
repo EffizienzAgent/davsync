@@ -60,7 +60,7 @@ CardDAV Account {0} not found,CardDAV-Konto {0} nicht gefunden
 Calendar changed: {0} appointments of the previous calendar were kept.,Kalender gewechselt: {0} Termine des bisherigen Kalenders wurden behalten.
 Full listing would cancel {0} appointments — skipped.,Die vollständige Liste würde {0} Termine absagen – übersprungen.
 {0} calendar objects could not be synced; see Error Log.,"{0} Kalendereinträge konnten nicht synchronisiert werden, siehe Fehlerprotokoll."
-The calendar data is refreshed with the next calendar sync (within 5 minutes).,Die Kalenderdaten werden beim nächsten Kalender-Abgleich aktualisiert (innerhalb von 5 Minuten).
+The calendar data is refreshed with the next calendar sync (within {0} min).,Die Kalenderdaten werden beim nächsten Kalender-Abgleich aktualisiert (innerhalb von {0} Min.).
 The calendar sync is disabled; the calendar data is refreshed once it is enabled.,"Der Kalender-Abgleich ist deaktiviert; die Kalenderdaten werden aktualisiert, sobald er aktiviert ist."
 Calendar could not be found: {0},Kalender wurde nicht gefunden: {0}
 Calendar found: {0},Kalender gefunden: {0}
@@ -82,6 +82,10 @@ Phone Region,Telefon-Region
 "Two-letter region for phone numbers without a country code, e.g. DE. Empty uses the default country.","Zweistellige Region für Telefonnummern ohne Ländervorwahl, z. B. DE. Leer: das Standardland."
 Own E-mail Addresses,Eigene E-Mail-Adressen
 One address per line. Calendar attendees with these addresses are not participants; the account owner's address is always included.,Eine Adresse pro Zeile. Kalender-Teilnehmer mit diesen Adressen zählen nicht als Teilnehmer; die Adresse des Konto-Inhabers gehört immer dazu.
+Contacts Sync Interval (min),Kontakt-Sync-Intervall (Min.)
+Minutes between two address book syncs. Empty or 0 uses 5. Saving a contact still pushes it right away.,Minuten zwischen zwei Adressbuch-Abgleichen. Leer oder 0: 5. Gespeicherte Kontakte werden weiterhin sofort übertragen.
+Calendar Sync Interval (min),Kalender-Sync-Intervall (Min.)
+Minutes between two calendar syncs. Empty or 0 uses 5.,Minuten zwischen zwei Kalender-Abgleichen. Leer oder 0: 5.
 e.g. https://cloud.example.com/remote.php/dav,z. B. https://cloud.example.com/remote.php/dav
 Calendar Name,Kalendername
 Display name or last path segment that Find calendar looks for. Empty takes the first calendar.,"Anzeigename oder letzter Pfadteil, den „Kalender suchen“ sucht. Leer: der erste Kalender."
