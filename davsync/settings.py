@@ -1,8 +1,12 @@
+import time
+
 import frappe
-from frappe.utils import cstr
+from frappe.utils import cint, cstr
 
 DOCTYPE = "DAV Sync Settings"
 FALLBACK_REGION = "DE"
+DEFAULT_INTERVAL = 5
+TICK_SLACK_SECONDS = 30
 
 
 def settings():
@@ -25,3 +29,18 @@ def self_emails() -> list[str]:
 	if configured:
 		return list(configured)
 	return [line.strip() for line in cstr(settings().self_emails).splitlines() if line.strip()]
+
+
+def sync_interval(kind: str) -> int:
+	return cint(settings().get(f"{kind}_interval")) or DEFAULT_INTERVAL
+
+
+def sync_due(kind: str) -> bool:
+	"""Called by the per-minute scheduler; true once the configured interval has passed."""
+	key = f"davsync-last-run:{kind}"
+	last = frappe.cache.get_value(key)
+	now = time.time()
+	if last and now - last < sync_interval(kind) * 60 - TICK_SLACK_SECONDS:
+		return False
+	frappe.cache.set_value(key, now)
+	return True

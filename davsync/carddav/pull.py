@@ -13,7 +13,7 @@ from davsync.carddav.adapter import get_adapter
 from davsync.carddav.client import CardDAVClient
 from davsync.carddav.names import normalize_person, person_key
 from davsync.phone import normalize_phone
-from davsync.settings import phone_region
+from davsync.settings import phone_region, sync_due
 
 SAVEPOINT = "carddav_pull"
 RUN_SAVEPOINT = "carddav_run"
@@ -134,6 +134,8 @@ def job_running(account, actions=LONG_JOBS):
 def pull_all() -> None:
 	from davsync.carddav import push
 
+	if not sync_due("contacts"):
+		return
 	for account in enabled_accounts():
 		if job_running(account):
 			continue

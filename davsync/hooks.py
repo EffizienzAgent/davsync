@@ -25,7 +25,7 @@ doc_events = {
 
 scheduler_events = {
 	"cron": {
-		"*/5 * * * *": [
+		"* * * * *": [
 			"davsync.carddav.pull.pull_all",
 			"davsync.caldav.sync.sync_all",
 		],
