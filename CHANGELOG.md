@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/EffizienzAgent/davsync/compare/v0.1.1...v0.2.0) (2026-10-26)
+
+
+### Features
+
+* configurable contacts and calendar sync intervals ([#9](https://github.com/EffizienzAgent/davsync/pull/9)) ([c47ab7d](https://github.com/EffizienzAgent/davsync/commit/c47ab7df571bf4bbe2af703a5ccabb13b0aa58c7))
+
 ## [0.1.1](https://github.com/EffizienzAgent/davsync/compare/v0.1.0...v0.1.1) (2026-10-24)
 
 
