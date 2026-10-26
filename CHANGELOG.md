@@ -5,8 +5,7 @@
 
 ### Features
 
-* configurable contacts and calendar sync intervals ([461f600](https://github.com/EffizienzAgent/davsync/commit/461f60045a78975d894ec720f5caf62e42a88a83))
-* configurable contacts and calendar sync intervals ([c47ab7d](https://github.com/EffizienzAgent/davsync/commit/c47ab7df571bf4bbe2af703a5ccabb13b0aa58c7))
+* configurable contacts and calendar sync intervals ([#9](https://github.com/EffizienzAgent/davsync/pull/9)) ([c47ab7d](https://github.com/EffizienzAgent/davsync/commit/c47ab7df571bf4bbe2af703a5ccabb13b0aa58c7))
 
 ## [0.1.1](https://github.com/EffizienzAgent/davsync/compare/v0.1.0...v0.1.1) (2026-10-24)
 
