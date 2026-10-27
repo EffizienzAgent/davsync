@@ -101,3 +101,9 @@ The server URL must start with https://.,Die Server-URL muss mit https:// beginn
 Skipped,Übersprungen
 Error,Fehler
 "{0} objects exceed the limits for recurring events; see Error Log.","{0} Kalenderobjekte überschreiten die Grenzen für Serientermine, siehe Fehlerprotokoll."
+Write to calendar,In den Kalender schreiben
+Organizer email,Organisator-E-Mail
+Allows other apps to create, change and delete events in this calendar. The server sends the invitations.,"Erlaubt anderen Apps, Termine in diesem Kalender anzulegen, zu ändern und zu löschen. Der Server verschickt die Einladungen."
+Organizer email of events written to the calendar. Empty takes the owner's email.,Organisator der in den Kalender geschriebenen Termine. Leer übernimmt die E-Mail des Eigentümers.
+Writing to the calendar is not enabled for this account.,Das Schreiben in den Kalender ist für dieses Konto nicht aktiviert.
+No calendar is set for this account.,Für dieses Konto ist kein Kalender hinterlegt.

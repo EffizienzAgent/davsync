@@ -33,14 +33,17 @@ URL_LENGTH = 1000
 class Context:
 	def __init__(self, account):
 		values = frappe.db.get_value(
-			"CardDAV Account", account, ["owner_user", "calendar_since"], as_dict=True
+			"CardDAV Account",
+			account,
+			["owner_user", "calendar_since", "calendar_organizer_email"],
+			as_dict=True,
 		)
 		self.account = account
 		self.owner = values.owner_user
 		self.tz = ZoneInfo(get_system_timezone())
 		self.since = get_datetime(values.calendar_since or "2000-01-01")
 		self.until = get_datetime(add_days(today(), HORIZON_DAYS))
-		self.own = self_emails(values.owner_user)
+		self.own = self_emails(values.owner_user) | {normalize(values.calendar_organizer_email or "")} - {""}
 		self.patterns = attendee_patterns(account)
 		self.ignored = ignored_uids(account)
 
