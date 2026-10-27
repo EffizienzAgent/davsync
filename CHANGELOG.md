@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/EffizienzAgent/davsync/compare/v0.3.0...v0.3.1) (2026-10-27)
+
+
+### Bug Fixes
+
+* **caldav:** fail free/busy when a calendar cannot be queried ([2c6bd6b](https://github.com/EffizienzAgent/davsync/commit/2c6bd6b2a082b7d32b78cd38097717f202e658a1))
+
 ## [0.3.0](https://github.com/EffizienzAgent/davsync/compare/v0.2.1...v0.3.0) (2026-10-27)
 
 
