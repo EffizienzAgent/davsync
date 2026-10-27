@@ -85,3 +85,18 @@ class TestCompose(UnitTestCase):
 			self.assertIn(escaped, text.replace("\r\n ", ""))
 		(parsed,) = parse(text)
 		self.assertEqual(parsed.description, description.strip())
+
+	def test_vtimezone_is_generated_for_the_zone(self):
+		text = compose(event())
+		self.assertIn("BEGIN:VTIMEZONE\r\nTZID:Europe/Berlin\r\n", text)
+		zone = text.split("BEGIN:VTIMEZONE")[1].split("END:VTIMEZONE")[0]
+		daylight = zone.split("BEGIN:DAYLIGHT")[1].split("END:DAYLIGHT")[0]
+		standard = zone.split("BEGIN:STANDARD")[1].split("END:STANDARD")[0]
+		self.assertIn("TZOFFSETFROM:+0100\r\nTZOFFSETTO:+0200", daylight)
+		self.assertIn("DTSTART:20260329T020000", daylight)
+		self.assertIn("RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU", daylight)
+		self.assertIn("TZOFFSETFROM:+0200\r\nTZOFFSETTO:+0100", standard)
+		self.assertIn("DTSTART:20261025T030000", standard)
+		self.assertIn("RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU", standard)
+		self.assertIn("DTSTART;TZID=Europe/Berlin:20261103T140000", text)
+		self.assertNotRegex(text, r"DTSTART:\d{8}T\d{6}Z")
