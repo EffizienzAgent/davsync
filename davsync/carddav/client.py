@@ -247,9 +247,12 @@ class CardDAVClient:
 		return results
 
 	def put(self, href: str, text: str, etag: str | None) -> str:
+		return self.put_object(href, text, etag, "text/vcard; charset=utf-8")
+
+	def put_object(self, href: str, text: str, etag: str | None, content_type: str) -> str:
 		self.require_book()
 		url = self.member(href)
-		headers = {"Content-Type": "text/vcard; charset=utf-8"}
+		headers = {"Content-Type": content_type}
 		headers.update({"If-Match": etag} if etag else {"If-None-Match": "*"})
 		response = self.request("PUT", url, headers=headers, data=text.encode(), allow={412})
 		if response.status_code == 412:

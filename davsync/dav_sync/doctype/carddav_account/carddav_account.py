@@ -14,6 +14,8 @@ class CardDAVAccount(Document):
 	def validate(self):
 		self.validate_urls()
 		self.validate_ignored_attendees()
+		if self.calendar_write_enabled and not self.calendar_organizer_email:
+			self.calendar_organizer_email = frappe.db.get_value("User", self.owner_user, "email")
 		if self.is_new():
 			return
 		url_changed = self.has_value_changed("calendar_url")

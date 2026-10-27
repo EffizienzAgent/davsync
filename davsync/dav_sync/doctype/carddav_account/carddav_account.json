@@ -28,6 +28,8 @@
   "calendar_url",
   "calendar_enabled",
   "calendar_since",
+  "calendar_write_enabled",
+  "calendar_organizer_email",
   "calendar_sync_token",
   "calendar_fresh",
   "calendar_url_changed",
@@ -143,6 +145,21 @@
    "fieldtype": "Date",
    "label": "Import From",
    "default": "Today"
+  },
+  {
+   "fieldname": "calendar_write_enabled",
+   "fieldtype": "Check",
+   "label": "Write to calendar",
+   "default": "0",
+   "description": "Allows other apps to create, change and delete events in this calendar. The server sends the invitations."
+  },
+  {
+   "fieldname": "calendar_organizer_email",
+   "fieldtype": "Data",
+   "label": "Organizer email",
+   "options": "Email",
+   "depends_on": "calendar_write_enabled",
+   "description": "Organizer email of events written to the calendar. Empty takes the owner's email."
   },
   {
    "fieldname": "calendar_sync_token",

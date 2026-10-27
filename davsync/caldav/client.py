@@ -1,4 +1,5 @@
-from datetime import UTC, datetime
+import re
+from datetime import UTC, datetime, timedelta
 from urllib.parse import urljoin
 from zoneinfo import ZoneInfo
 
@@ -85,3 +86,91 @@ class CalDAVClient(CardDAVClient):
 
 	def delete(self, *args, **kwargs):
 		raise CardDAVError("The calendar is read-only")
+
+	def put_event(self, href: str, text: str, etag: str | None) -> str:
+		return self.put_object(href, text, etag, "text/calendar; charset=utf-8")
+
+	def delete_event(self, href: str, etag: str) -> None:
+		CardDAVClient.delete(self, href, etag)
+
+	def supports_scheduling(self) -> bool:
+		self.require_book()
+		response = self.request("OPTIONS", self.calendar_url)
+		return "calendar-auto-schedule" in response.headers.get("DAV", "").lower()
+
+	def free_busy(self, start: datetime, end: datetime) -> list[tuple[datetime, datetime]]:
+		home_url, entries = self.collections()
+		body = xml_body(
+			f"<cal:free-busy-query {NS_DECLARATIONS}>"
+			f'<cal:time-range start="{start.astimezone(UTC):%Y%m%dT%H%M%SZ}" '
+			f'end="{end.astimezone(UTC):%Y%m%dT%H%M%SZ}"/></cal:free-busy-query>'
+		)
+		busy = []
+		for calendar in (e for e in entries if is_calendar(e)):
+			url = urljoin(home_url, calendar["href"])
+			try:
+				response = self.request("REPORT", url, headers={**XML_HEADERS, "Depth": "1"}, data=body)
+			except CardDAVError as exc:
+				log_free_busy_failure(url, exc)
+				continue
+			busy += parse_free_busy(response.content.decode(errors="replace"))
+		return merge_intervals(busy)
+
+
+LOGGED_FAILURES = set()
+
+
+def log_free_busy_failure(url, exc):
+	if url not in LOGGED_FAILURES:
+		LOGGED_FAILURES.add(url)
+		frappe.log_error(title="CalDAV free/busy failed", message=f"{url}: {exc}")
+
+
+def parse_stamp(value):
+	return datetime.strptime(value.strip(), "%Y%m%dT%H%M%SZ").replace(tzinfo=UTC)
+
+
+def parse_duration(value):
+	match = re.fullmatch(
+		r"([+-])?P(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?", value.strip()
+	)
+	if not match:
+		raise ValueError(value)
+	sign, weeks, days, hours, minutes, seconds = match.groups()
+	delta = timedelta(
+		weeks=int(weeks or 0),
+		days=int(days or 0),
+		hours=int(hours or 0),
+		minutes=int(minutes or 0),
+		seconds=int(seconds or 0),
+	)
+	return -delta if sign == "-" else delta
+
+
+def parse_free_busy(text):
+	lines = re.sub(r"\r?\n[ \t]", "", text).splitlines()
+	intervals = []
+	for line in lines:
+		name, _, value = line.partition(":")
+		head, *params = name.split(";")
+		if head.upper() != "FREEBUSY" or "FBTYPE=FREE" in (p.upper() for p in params):
+			continue
+		for period in value.split(","):
+			first, _, second = period.partition("/")
+			try:
+				begin = parse_stamp(first)
+				finish = parse_stamp(second) if second.endswith("Z") else begin + parse_duration(second)
+			except ValueError:
+				continue
+			intervals.append((begin, finish))
+	return intervals
+
+
+def merge_intervals(intervals):
+	merged = []
+	for begin, finish in sorted(intervals):
+		if merged and begin <= merged[-1][1]:
+			merged[-1] = (merged[-1][0], max(merged[-1][1], finish))
+		else:
+			merged.append((begin, finish))
+	return merged
