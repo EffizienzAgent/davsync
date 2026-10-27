@@ -274,6 +274,8 @@ def apply_object(context, href, etag, events):
 			seen.add(event.key)
 			outcomes["skipped"] += 1
 			continue
+		if declined_by_owner(event, context):
+			event.status = "CANCELLED"
 		people = participants_of(event, context)
 		if name:
 			seen.add(event.key)
@@ -285,6 +287,10 @@ def apply_object(context, href, etag, events):
 		if key not in seen:
 			outcomes["cancelled"] += target.cancel(name)
 	return outcomes
+
+
+def declined_by_owner(event, context):
+	return any(a.email in context.own and a.partstat == "DECLINED" for a in event.attendees)
 
 
 def participants_of(event, context):

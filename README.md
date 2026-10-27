@@ -8,7 +8,8 @@ servers.
   addresses, birthday, notes and photo. Changes on either side are synced; when both sides change
   the same card, the server's notes and photo are kept and the site's fields win.
 - **Calendar, read-only.** Events with external attendees are imported into Frappe's `Event`.
-  Recurring series are expanded 90 days ahead. Nothing is ever written to the calendar.
+  Recurring series are expanded 90 days ahead. Invitations you declined are left out (or cancelled
+  once you decline them). Nothing is ever written to the calendar.
 - **Ignore rules.** Attendee patterns such as `*@newsletter.example.com` and whole series that
   should never be imported.
 - **Safety nets.** ETag preconditions on every write, a sync token per account, and a guard that

@@ -121,6 +121,53 @@ class TestCalendarSync(IntegrationTestCase):
 		self.assertEqual(self.pull()["cancelled"], 1)
 		self.assertEqual(self.events(href)[0].status, "Cancelled")
 
+	def declined(self):
+		return (
+			f"ATTENDEE;CN=Owner;PARTSTAT=DECLINED:mailto:{frappe.db.get_value('User', self.owner, 'email')}"
+		)
+
+	def test_declined_invitation_is_not_imported(self):
+		guest = (f"d-{tag()}@example.test", "D")
+		href = self.add(vevent(f"u-{tag()}", attendees=[guest], extra=[self.declined()]))
+		self.assertEqual(self.pull()["skipped"], 1)
+		self.assertEqual(self.events(href), [])
+
+	def test_declining_later_cancels_the_event(self):
+		uid, guest = f"u-{tag()}", (f"l-{tag()}@example.test", "L")
+		href = self.add(vevent(uid, attendees=[guest]))
+		self.pull()
+		FakeClient.objects[href] = (
+			'"declined"',
+			calendar(vevent(uid, attendees=[guest], extra=[self.declined()])),
+		)
+		self.pull()
+		self.assertEqual(self.events(href)[0].status, "Cancelled")
+
+	def test_accepted_occurrence_of_declined_series_is_imported(self):
+		uid, guest = f"series-{tag()}", (f"o-{tag()}@example.test", "O")
+		owner = frappe.db.get_value("User", self.owner, "email")
+		href = self.add(
+			vevent(
+				uid,
+				start="20260706T100000",
+				end="20260706T110000",
+				attendees=[guest],
+				extra=["RRULE:FREQ=WEEKLY;COUNT=3", self.declined()],
+			),
+			vevent(
+				uid,
+				start="20260713T120000",
+				end="20260713T130000",
+				attendees=[guest],
+				extra=[
+					"RECURRENCE-ID;TZID=Europe/Berlin:20260713T100000",
+					f"ATTENDEE;CN=Owner;PARTSTAT=ACCEPTED:mailto:{owner}",
+				],
+			),
+		)
+		self.assertEqual(self.pull()["created"], 1)
+		self.assertEqual([str(e.starts_on) for e in self.events(href)], ["2026-07-13 12:00:00"])
+
 	def test_recurring_series_expands_and_can_be_ignored(self):
 		uid = f"series-{tag()}"
 		href = self.add(
