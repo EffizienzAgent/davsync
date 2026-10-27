@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.0](https://github.com/EffizienzAgent/davsync/compare/v0.2.1...v0.3.0) (2026-10-27)
+
+
+### Features
+
+* **caldav:** compose outgoing events ([2ead43d](https://github.com/EffizienzAgent/davsync/commit/2ead43d528a8e061583a390bdd54ffb7dd19d6d4))
+* **caldav:** write events and query free/busy (opt-in per account) ([4d14951](https://github.com/EffizienzAgent/davsync/commit/4d149513305eee345c81ff9441c4dcad9914cb9d))
+
+
+### Bug Fixes
+
+* **caldav:** surface import failures after writing ([0195716](https://github.com/EffizienzAgent/davsync/commit/019571634a9a3264da0b1bad39b23d89b6ecbd7b))
+
 ## [0.2.1](https://github.com/EffizienzAgent/davsync/compare/v0.2.0...v0.2.1) (2026-10-27)
 
 
