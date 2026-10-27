@@ -9,6 +9,7 @@ from davsync.caldav import client as caldav_client
 from davsync.caldav import sync, writer
 from davsync.caldav.client import CalDAVClient
 from davsync.caldav.compose import OutgoingEvent, Person
+from davsync.caldav.target import EventTarget
 from davsync.carddav import client as client_module
 from davsync.carddav.client import PreconditionFailed
 from davsync.tests.helpers import guard_commit, make_carddav_account, make_contact, make_user, tag
@@ -191,6 +192,21 @@ class TestCalendarWriter(IntegrationTestCase):
 		self.assertEqual(self.events(), before)
 		keys = frappe.get_all("Event", filters={"caldav_account": self.account}, pluck="caldav_uid")
 		self.assertEqual(keys, [uid])
+
+	def test_failed_import_raises_and_next_sync_retries(self):
+		guest = f"guest-{tag()}@example.test"
+		make_contact("Gast", "Teilnehmer", emails=[guest])
+		with patch.object(EventTarget, "upsert", side_effect=RuntimeError("boom")):
+			with self.assertRaises(writer.ImportFailed) as caught:
+				writer.write_event(self.account, outgoing(f"u-{tag()}", guest))
+		href, etag = caught.exception.href, caught.exception.etag
+		row = frappe.db.get_value(
+			"Calendar Object", {"account": self.account, "href": href}, ["etag", "failed"], as_dict=True
+		)
+		self.assertEqual((row.etag, row.failed), (etag, 1))
+		self.assertEqual(self.events(), [])
+		self.assertEqual(sync.pull(self.account)["created"], 1)
+		self.assertEqual(len(self.events()), 1)
 
 	def test_write_requires_opt_in(self):
 		frappe.db.set_value("CardDAV Account", self.account, "calendar_write_enabled", 0)

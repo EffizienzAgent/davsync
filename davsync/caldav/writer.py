@@ -5,10 +5,19 @@ from frappe import _
 
 from davsync.caldav.client import CalDAVClient
 from davsync.caldav.compose import OutgoingEvent, compose
-from davsync.caldav.sync import Context, cancel_href, forget, pull_one, refetch, remember
-from davsync.carddav.client import PreconditionFailed
+from davsync.caldav.sync import Context, cancel_href, forget, pull_one, refetch
+from davsync.carddav.client import CardDAVError, PreconditionFailed
 
 SCHEDULING_TTL = 3600
+
+
+class ImportFailed(CardDAVError):
+	"""The event is on the server, but importing it into the site failed; the next sync retries it."""
+
+	def __init__(self, href, etag):
+		super().__init__(f"Event written to {href}, but importing it failed")
+		self.href = href
+		self.etag = etag
 
 
 def require_write(account):
@@ -37,8 +46,9 @@ def write_event(
 	except PreconditionFailed:
 		refetch(account, [href])
 		raise
-	pull_one(Context(account), href, new_etag, text)
-	remember(account, href, new_etag)
+	outcome = pull_one(Context(account), href, new_etag, text)
+	if outcome["failed"] or outcome["limited"]:
+		raise ImportFailed(href, new_etag)
 	return href, new_etag
 
 
