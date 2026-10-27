@@ -105,15 +105,18 @@ class CalDAVClient(CardDAVClient):
 			f'<cal:time-range start="{start.astimezone(UTC):%Y%m%dT%H%M%SZ}" '
 			f'end="{end.astimezone(UTC):%Y%m%dT%H%M%SZ}"/></cal:free-busy-query>'
 		)
-		busy = []
+		busy, failed = [], []
 		for calendar in (e for e in entries if is_calendar(e)):
 			url = urljoin(home_url, calendar["href"])
 			try:
 				response = self.request("REPORT", url, headers={**XML_HEADERS, "Depth": "1"}, data=body)
 			except CardDAVError as exc:
 				log_free_busy_failure(url, exc)
+				failed.append(url)
 				continue
 			busy += parse_free_busy(response.content.decode(errors="replace"))
+		if failed:
+			raise CardDAVError(f"Free/busy query failed for {', '.join(failed)}")
 		return merge_intervals(busy)
 
 
