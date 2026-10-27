@@ -11,7 +11,7 @@ from davsync.caldav.client import CalDAVClient
 from davsync.caldav.compose import OutgoingEvent, Person
 from davsync.caldav.target import EventTarget
 from davsync.carddav import client as client_module
-from davsync.carddav.client import PreconditionFailed
+from davsync.carddav.client import CardDAVError, PreconditionFailed
 from davsync.tests.helpers import guard_commit, make_carddav_account, make_contact, make_user, tag
 from davsync.tests.test_caldav_client import calendar_entry, multistatus
 from davsync.tests.test_calendar import CALENDAR, CALENDAR_PATH, FakeClient
@@ -119,18 +119,18 @@ class TestCalendarClientWrite(IntegrationTestCase):
 		self.assertIn("free-busy-query", report.kwargs["data"].decode())
 		self.assertIn('start="20261027T000000Z"', report.kwargs["data"].decode())
 
-	def test_free_busy_skips_failing_calendar(self):
+	def test_free_busy_fails_when_any_calendar_fails(self):
 		ok = freebusy("20261027T080000Z/20261027T090000Z")
 		start, end = datetime(2026, 10, 27, tzinfo=UTC), datetime(2026, 10, 28, tzinfo=UTC)
 		with (
 			self.patched([*self.home_responses("broken", "business"), FakeResponse("", 403), ok]),
 			patch.object(caldav_client, "LOGGED_FAILURES", set()),
 			patch.object(frappe, "log_error") as log,
+			self.assertRaises(CardDAVError) as raised,
 		):
-			result = self.client.free_busy(start, end)
-		self.assertEqual(
-			result, [(datetime(2026, 10, 27, 8, tzinfo=UTC), datetime(2026, 10, 27, 9, tzinfo=UTC))]
-		)
+			self.client.free_busy(start, end)
+		self.assertIn(f"{HOME}broken/", str(raised.exception))
+		self.assertNotIn(BUSINESS, str(raised.exception))
 		log.assert_called_once()
 
 
