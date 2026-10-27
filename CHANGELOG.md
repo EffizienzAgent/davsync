@@ -5,13 +5,12 @@
 
 ### Bug Fixes
 
-* **caldav:** leave out invitations the owner declined ([dd4a7f8](https://github.com/EffizienzAgent/davsync/commit/dd4a7f8b7ccd54f1fdb5022da65472d81c72e224))
+* **caldav:** leave out invitations the owner declined ([#13](https://github.com/EffizienzAgent/davsync/pull/13)) ([dd4a7f8](https://github.com/EffizienzAgent/davsync/commit/dd4a7f8b7ccd54f1fdb5022da65472d81c72e224))
 
 
 ### Documentation
 
-* how tests get past the sync interval gate ([aa20cee](https://github.com/EffizienzAgent/davsync/commit/aa20cee299a244200f5f38ebeddd856156237f3a))
-* how tests get past the sync interval gate ([31eaac4](https://github.com/EffizienzAgent/davsync/commit/31eaac4edf6e4896c7112fec58c2170da9ae7bec))
+* how tests get past the sync interval gate ([#11](https://github.com/EffizienzAgent/davsync/pull/11)) ([31eaac4](https://github.com/EffizienzAgent/davsync/commit/31eaac4edf6e4896c7112fec58c2170da9ae7bec))
 
 ## [0.2.0](https://github.com/EffizienzAgent/davsync/compare/v0.1.1...v0.2.0) (2026-10-26)
 
