@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.0](https://github.com/EffizienzAgent/davsync/compare/v0.3.1...v0.4.0) (2026-11-03)
+
+
+### Features
+
+* add app icon and apps screen entry ([5d6dd2c](https://github.com/EffizienzAgent/davsync/commit/5d6dd2c3b3a395ad8b415d67d95cfc8c8a6b799a))
+* add app icon and apps screen entry ([61c1d23](https://github.com/EffizienzAgent/davsync/commit/61c1d234edb73f08c4c13ecb4318e2d7abc961d4))
+
 ## [0.3.1](https://github.com/EffizienzAgent/davsync/compare/v0.3.0...v0.3.1) (2026-10-27)
 
 
