@@ -19,7 +19,7 @@ class CardDAVAccount(Document):
 		if self.is_new():
 			return
 		url_changed = self.has_value_changed("calendar_url")
-		if url_changed or self.has_value_changed("calendar_since"):
+		if url_changed or self.has_value_changed("calendar_since") or self.has_value_changed("calendar_import_all"):
 			self.calendar_sync_token = None
 			self.calendar_fresh = 1
 		if url_changed:

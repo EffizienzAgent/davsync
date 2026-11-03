@@ -98,6 +98,28 @@ class TestCalendarSync(IntegrationTestCase):
 		self.assertEqual(self.pull()["skipped"], 1)
 		self.assertEqual(self.events(href), [])
 
+	def test_event_without_participants_is_imported_with_import_all(self):
+		frappe.db.set_value("CardDAV Account", self.account, "calendar_import_all", 1)
+		href = self.add(vevent(f"u-{tag()}"))
+		self.assertEqual(self.pull()["created"], 1)
+		[event] = self.events(href)
+		self.assertEqual((event.status, event.event_type, event.owner), ("Open", "Private", self.owner))
+		self.assertEqual(frappe.get_all("Event Participants", filters={"parent": event.name}), [])
+
+	def test_import_all_still_skips_events_before_import_from(self):
+		frappe.db.set_value("CardDAV Account", self.account, "calendar_import_all", 1)
+		self.add(vevent(f"u-{tag()}", start="20251201T100000"))
+		self.assertEqual(self.pull()["skipped"], 1)
+
+	def test_switching_import_all_on_refetches_skipped_objects(self):
+		href = self.add(vevent(f"u-{tag()}"))
+		self.assertEqual(self.pull()["skipped"], 1)
+		doc = frappe.get_doc("CardDAV Account", self.account)
+		doc.calendar_import_all = 1
+		doc.save()
+		self.assertEqual(self.pull()["created"], 1)
+		self.assertEqual(len(self.events(href)), 1)
+
 	def test_own_addresses_from_settings_are_no_participants(self):
 		frappe.get_single("DAV Sync Settings").update({"self_emails": "me@example.test"}).save()
 		self.addCleanup(lambda: frappe.get_single("DAV Sync Settings").update({"self_emails": ""}).save())

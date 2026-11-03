@@ -42,7 +42,7 @@ Enter the calendar's name, e.g. `Work`, in *Calendar Name* (or the last part of 
 `https://cloud.example.com/remote.php/dav/calendars/alice/work/`. Set *Import From*, tick *Calendar
 Sync Enabled* and click **Start calendar import**.
 
-Only events with at least one attendee who is not you are imported. Add your own addresses in **DAV
+Only events with at least one attendee who is not you are imported, unless *Import all events* is ticked. Add your own addresses in **DAV
 Sync Settings → Own E-mail Addresses** if you use several, and list mailing-list or room addresses
 under *Ignored Attendees*, e.g. `*@lists.example.com`. To drop one series for good, create an
 **Ignored Calendar Event** with its UID; deleting that entry brings the events back.

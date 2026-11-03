@@ -28,6 +28,7 @@
   "calendar_url",
   "calendar_enabled",
   "calendar_since",
+  "calendar_import_all",
   "calendar_write_enabled",
   "calendar_organizer_email",
   "calendar_sync_token",
@@ -145,6 +146,13 @@
    "fieldtype": "Date",
    "label": "Import From",
    "default": "Today"
+  },
+  {
+   "fieldname": "calendar_import_all",
+   "fieldtype": "Check",
+   "label": "Import all events",
+   "default": "0",
+   "description": "Also import events without external attendees, such as your own appointments. Off: only events with at least one attendee who is not you."
   },
   {
    "fieldname": "calendar_write_enabled",
