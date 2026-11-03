@@ -1,5 +1,9 @@
 CardDAV and CalDAV sync for the Frappe Framework
 
+<img src="docs/images/logo.png" alt="" width="96" align="right">
+
+# davsync
+
 **davsync** is a Frappe v16 app that keeps the site's contacts in step with a CardDAV address book
 and imports a CalDAV calendar. It works with Nextcloud, Radicale, Baïkal, SOGo and other standard
 servers.
