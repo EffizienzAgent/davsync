@@ -4,6 +4,15 @@ app_publisher = "EffizienzAgent (Tobias Mende)"
 app_description = "CardDAV and CalDAV sync for the Frappe Framework"
 app_email = "oss@effizienzagent.de"
 app_license = "mit"
+app_logo_url = "/assets/davsync/images/davsync-logo.svg"
+add_to_apps_screen = [
+	{
+		"name": "davsync",
+		"logo": "/assets/davsync/images/davsync-logo.svg",
+		"title": "DAV Sync",
+		"route": "/app/carddav-account",
+	}
+]
 
 after_sync = "davsync.install.ensure_indexes"
 after_migrate = "davsync.install.ensure_indexes"
