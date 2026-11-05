@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.0](https://github.com/EffizienzAgent/davsync/compare/v0.4.0...v0.5.0) (2026-11-05)
+
+
+### Features
+
+* optionally import all calendar appointments ([376fb63](https://github.com/EffizienzAgent/davsync/commit/376fb63e3c9cb86d9f70586bfa016e51d324b7a8))
+* optionally import all calendar appointments ([686a533](https://github.com/EffizienzAgent/davsync/commit/686a533f66dffe457cab4578c97f3fedd7a52d6a))
+
 ## [0.4.0](https://github.com/EffizienzAgent/davsync/compare/v0.3.1...v0.4.0) (2026-11-03)
 
 
