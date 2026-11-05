@@ -63,7 +63,7 @@ By default events go into Frappe's `Event`. To import them into another doctype,
 
 | Method | Purpose |
 | --- | --- |
-| `upsert(context, href, etag, event, people, name)` | Create or update one record and return `created`, `linked`, `updated` or `skipped`. `event` is a `davsync.caldav.ical.Event`, `people` the attendees that are neither you nor ignored, `name` the existing record or `None`. |
+| `upsert(context, href, etag, event, people, name)` | Create or update one record and return `created`, `linked`, `updated` or `skipped`. `event` is a `davsync.caldav.ical.Event`, `people` the attendees that are neither you nor ignored (`None` when there are none, which reaches new records only with *Import all appointments*), `name` the existing record or `None`. |
 | `cancel(name)` | The event is gone or no longer in the object; mark the record cancelled and return 1 if it changed. |
 | `existing`, `find`, `recurring_hrefs`, `series` | Lookups by the `caldav_*` fields; override when your doctype filters further. |
 | `is_protected(name)` | Records the ignore rules never hide, e.g. ones another integration owns. |

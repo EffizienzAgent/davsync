@@ -11,7 +11,8 @@ servers.
 - **Contacts, two-way.** vCards become Frappe `Contact` records with e-mails, phone numbers,
   addresses, birthday, notes and photo. Changes on either side are synced; when both sides change
   the same card, the server's notes and photo are kept and the site's fields win.
-- **Calendar.** Events with external attendees are imported into Frappe's `Event`.
+- **Calendar.** Events with external attendees are imported into Frappe's `Event`; tick
+  *Import all appointments* to import the rest as well.
   Recurring series are expanded 90 days ahead. Invitations you declined are left out (or cancelled
   once you decline them). Writing events (and the invitations your server sends for them) is opt-in per account.
 - **Ignore rules.** Attendee patterns such as `*@newsletter.example.com` and whole series that

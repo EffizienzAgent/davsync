@@ -102,6 +102,8 @@ Skipped,Übersprungen
 Error,Fehler
 "{0} objects exceed the limits for recurring events; see Error Log.","{0} Kalenderobjekte überschreiten die Grenzen für Serientermine, siehe Fehlerprotokoll."
 Write to calendar,In den Kalender schreiben
+Import all appointments,Alle Termine importieren
+"Also imports appointments without external attendees, so the calendar is complete.","Importiert auch Termine ohne externe Teilnehmer, damit der Kalender vollständig ist."
 Organizer email,Organisator-E-Mail
 Allows other apps to create, change and delete events in this calendar. The server sends the invitations.,"Erlaubt anderen Apps, Termine in diesem Kalender anzulegen, zu ändern und zu löschen. Der Server verschickt die Einladungen."
 Organizer email of events written to the calendar. Empty takes the owner's email.,Organisator der in den Kalender geschriebenen Termine. Leer übernimmt die E-Mail des Eigentümers.
