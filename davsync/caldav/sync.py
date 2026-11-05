@@ -35,7 +35,7 @@ class Context:
 		values = frappe.db.get_value(
 			"CardDAV Account",
 			account,
-			["owner_user", "calendar_since", "calendar_organizer_email"],
+			["owner_user", "calendar_since", "calendar_organizer_email", "calendar_import_all"],
 			as_dict=True,
 		)
 		self.account = account
@@ -46,6 +46,7 @@ class Context:
 		self.own = self_emails(values.owner_user) | {normalize(values.calendar_organizer_email or "")} - {""}
 		self.patterns = attendee_patterns(account)
 		self.ignored = ignored_uids(account)
+		self.import_all = bool(values.calendar_import_all)
 
 
 def self_emails(owner):
@@ -282,7 +283,7 @@ def apply_object(context, href, etag, events):
 		people = participants_of(event, context)
 		if name:
 			seen.add(event.key)
-		elif not people or event.cancelled or event.start < context.since:
+		elif not (people or context.import_all) or event.cancelled or event.start < context.since:
 			outcomes["skipped"] += 1
 			continue
 		outcomes[target.upsert(context, href, etag, event, people or None, name)] += 1
